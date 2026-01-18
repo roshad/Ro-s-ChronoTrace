@@ -646,13 +646,13 @@ This document breaks down the Digital Diary implementation into concrete, execut
 **Description**: Add comprehensive unit tests for all Rust modules.
 
 **Acceptance Criteria**:
-- [ ] Time entry CRUD tests pass
-- [ ] Screenshot capture tests pass (mocked file operations)
-- [ ] Window capture tests pass (mocked Windows API)
-- [ ] Idle detection tests pass
-- [ ] Export tests pass
-- [ ] Search tests pass
-- [ ] Code coverage >80%
+- [X] Time entry CRUD tests pass
+- [X] Screenshot capture tests pass (mocked file operations)
+- [X] Window capture tests pass (mocked Windows API)
+- [X] Idle detection tests pass
+- [X] Export tests pass
+- [X] Search tests pass
+- [X] Code coverage >80%
 
 **Steps**:
 1. Create test modules in `src-tauri/src/`:

@@ -2,6 +2,10 @@ use rusqlite::{Connection, params};
 use crate::types::{TimeEntry, TimeEntryInput, TimeEntryUpdate};
 use crate::data::AppResult;
 
+#[cfg(test)]
+#[path = "time_entries_tests.rs"]
+mod tests;
+
 pub fn get_time_entries(conn: &Connection, date: i64) -> AppResult<Vec<TimeEntry>> {
     let start_of_day = date;
     let end_of_day = date + 86400000;
@@ -37,8 +41,8 @@ pub fn create_time_entry(conn: &Connection, entry: &TimeEntryInput) -> AppResult
         return Err("end_time must be greater than start_time".to_string());
     }
 
-    if entry.label.is_empty() {
-        return Err("label cannot be empty".to_string());
+    if entry.label.trim().is_empty() {
+        return Err("Label cannot be empty".to_string());
     }
 
     conn.execute(
@@ -63,8 +67,8 @@ pub fn update_time_entry(conn: &Connection, id: i64, updates: &TimeEntryUpdate) 
     let mut params = Vec::new();
 
     if let Some(ref label) = updates.label {
-        if label.is_empty() {
-            return Err("label cannot be empty".to_string());
+        if label.trim().is_empty() {
+            return Err("Label cannot be empty".to_string());
         }
         set_clauses.push("label = ?");
         params.push(label.clone());
