@@ -1,0 +1,90 @@
+import { invoke } from '@tauri-apps/api/core';
+
+// Type definitions (matching Rust types)
+export interface TimeEntry {
+  id: number;
+  start_time: number;
+  end_time: number;
+  label: string;
+  color?: string;
+}
+
+export interface TimeEntryInput {
+  start_time: number;
+  end_time: number;
+  label: string;
+  color?: string;
+}
+
+export interface TimeEntryUpdate {
+  label?: string;
+  color?: string;
+}
+
+export interface ScreenshotInfo {
+  file_path?: string;
+  placeholder?: string;
+}
+
+export interface SearchResult {
+  type: 'time_entry' | 'window_activity';
+  timestamp: number;
+  title: string;
+  process_name?: string;
+}
+
+export interface ExportData {
+  version: string;
+  exported_at: string;
+  time_entries: TimeEntry[];
+  screenshots: Array<{ timestamp: number; file_path: string }>;
+  window_activities: Array<{
+    id: number;
+    timestamp: number;
+    window_title: string;
+    process_name: string;
+  }>;
+  idle_periods: Array<{
+    id: number;
+    start_time: number;
+    end_time: number;
+    resolution?: string;
+  }>;
+}
+
+// API functions
+export const api = {
+  // Time entries
+  getTimeEntries: (date: number): Promise<TimeEntry[]> =>
+    invoke('get_time_entries', { date }),
+
+  createTimeEntry: (entry: TimeEntryInput): Promise<TimeEntry> =>
+    invoke('create_time_entry', { entry }),
+
+  updateTimeEntry: (id: number, updates: TimeEntryUpdate): Promise<TimeEntry> =>
+    invoke('update_time_entry', { id, updates }),
+
+  deleteTimeEntry: (id: number): Promise<void> =>
+    invoke('delete_time_entry', { id }),
+
+  // Screenshots
+  getScreenshotForTime: (timestamp: number): Promise<ScreenshotInfo> =>
+    invoke('get_screenshot_for_time', { timestamp }),
+
+  // Search
+  searchActivities: (query: string): Promise<SearchResult[]> =>
+    invoke('search_activities_cmd', { query }),
+
+  // Export
+  exportData: (): Promise<ExportData> =>
+    invoke('export_data_cmd'),
+
+  // Idle
+  resolveIdlePeriod: (resolution: {
+    id: number;
+    resolution: string;
+    target_entry_id?: number;
+    new_entry_label?: string;
+  }): Promise<any> =>
+    invoke('resolve_idle_period', { resolution }),
+};
