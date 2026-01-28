@@ -1,32 +1,34 @@
-use rusqlite::{Connection, params};
-use crate::types::{TimeEntry, TimeEntryInput, TimeEntryUpdate};
 use crate::data::AppResult;
+use crate::types::{TimeEntry, TimeEntryInput, TimeEntryUpdate};
+use rusqlite::{params, Connection};
 
 #[cfg(test)]
 #[path = "time_entries_tests.rs"]
 mod tests;
 
-pub fn get_time_entries(conn: &Connection, date: i64) -> AppResult<Vec<TimeEntry>> {
+pub fn get_time_entries_impl(conn: &Connection, date: i64) -> AppResult<Vec<TimeEntry>> {
     let start_of_day = date;
     let end_of_day = date + 86400000;
 
-    let mut stmt = conn.prepare(
-        "SELECT id, start_time, end_time, label, color FROM time_entries 
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, start_time, end_time, label, color FROM time_entries 
          WHERE start_time >= ? AND start_time < ? 
-         ORDER BY start_time"
-    )
-    .map_err(|e| format!("Failed to prepare query: {}", e))?;
+         ORDER BY start_time",
+        )
+        .map_err(|e| format!("Failed to prepare query: {}", e))?;
 
-    let entry_iter = stmt.query_map(params![start_of_day, end_of_day], |row| {
-        Ok(TimeEntry {
-            id: row.get(0)?,
-            start_time: row.get(1)?,
-            end_time: row.get(2)?,
-            label: row.get(3)?,
-            color: row.get(4)?,
+    let entry_iter = stmt
+        .query_map(params![start_of_day, end_of_day], |row| {
+            Ok(TimeEntry {
+                id: row.get(0)?,
+                start_time: row.get(1)?,
+                end_time: row.get(2)?,
+                label: row.get(3)?,
+                color: row.get(4)?,
+            })
         })
-    })
-    .map_err(|e| format!("Failed to query time entries: {}", e))?;
+        .map_err(|e| format!("Failed to query time entries: {}", e))?;
 
     let mut entries = Vec::new();
     for entry in entry_iter {
@@ -36,13 +38,44 @@ pub fn get_time_entries(conn: &Connection, date: i64) -> AppResult<Vec<TimeEntry
     Ok(entries)
 }
 
-pub fn create_time_entry(conn: &Connection, entry: &TimeEntryInput) -> AppResult<TimeEntry> {
+pub fn create_time_entry_impl(conn: &Connection, entry: &TimeEntryInput) -> AppResult<TimeEntry> {
     if entry.end_time <= entry.start_time {
         return Err("end_time must be greater than start_time".to_string());
     }
 
     if entry.label.trim().is_empty() {
         return Err("Label cannot be empty".to_string());
+    }
+
+    // Check for overlapping entries on the same day
+    let start_of_day = entry.start_time - (entry.start_time % 86400000);
+    let end_of_day = start_of_day + 86400000;
+
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, start_time, end_time FROM time_entries 
+         WHERE start_time >= ? AND start_time < ?",
+        )
+        .map_err(|e| format!("Failed to prepare overlap check query: {}", e))?;
+
+    let entry_iter = stmt
+        .query_map(params![start_of_day, end_of_day], |row| {
+            Ok((
+                row.get::<_, i64>(0)?,
+                row.get::<_, i64>(1)?,
+                row.get::<_, i64>(2)?,
+            ))
+        })
+        .map_err(|e| format!("Failed to query existing entries: {}", e))?;
+
+    for existing_entry in entry_iter {
+        let (_, existing_start, existing_end) =
+            existing_entry.map_err(|e| format!("Failed to map existing entry: {}", e))?;
+
+        // Check for overlap: (StartA < EndB) and (EndA > StartB)
+        if entry.start_time < existing_end && entry.end_time > existing_start {
+            return Err("Time entry overlaps with an existing entry on the same day".to_string());
+        }
     }
 
     conn.execute(
@@ -62,7 +95,11 @@ pub fn create_time_entry(conn: &Connection, entry: &TimeEntryInput) -> AppResult
     })
 }
 
-pub fn update_time_entry(conn: &Connection, id: i64, updates: &TimeEntryUpdate) -> AppResult<TimeEntry> {
+pub fn update_time_entry_impl(
+    conn: &Connection,
+    id: i64,
+    updates: &TimeEntryUpdate,
+) -> AppResult<TimeEntry> {
     let mut set_clauses = Vec::new();
     let mut params = Vec::new();
 
@@ -96,9 +133,14 @@ pub fn update_time_entry(conn: &Connection, id: i64, updates: &TimeEntryUpdate) 
     get_time_entry_by_id(conn, id)
 }
 
-pub fn delete_time_entry(conn: &Connection, id: i64) -> AppResult<()> {
-    conn.execute("DELETE FROM time_entries WHERE id = ?", params![id])
+pub fn delete_time_entry_impl(conn: &Connection, id: i64) -> AppResult<()> {
+    let rows_affected = conn
+        .execute("DELETE FROM time_entries WHERE id = ?", params![id])
         .map_err(|e| format!("Failed to delete time entry: {}", e))?;
+
+    if rows_affected == 0 {
+        return Err("Time entry not found".to_string());
+    }
 
     Ok(())
 }
@@ -117,5 +159,5 @@ fn get_time_entry_by_id(conn: &Connection, id: i64) -> AppResult<TimeEntry> {
             })
         },
     )
-    .map_err(|e| format!("Failed to fetch time entry: {}", e))?
+    .map_err(|e| format!("Failed to fetch time entry: {}", e))
 }

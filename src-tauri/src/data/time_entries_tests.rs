@@ -1,6 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::data::time_entries::{
+        create_time_entry_impl, delete_time_entry_impl, get_time_entries_impl,
+        update_time_entry_impl, TimeEntryInput, TimeEntryUpdate,
+    };
     use rusqlite::Connection;
 
     fn setup_test_db() -> Connection {
@@ -16,12 +19,14 @@ mod tests {
                 color TEXT
             )",
             [],
-        ).unwrap();
+        )
+        .unwrap();
 
         conn.execute(
             "CREATE INDEX idx_time_entries_start_time ON time_entries(start_time)",
             [],
-        ).unwrap();
+        )
+        .unwrap();
 
         conn
     }
@@ -37,7 +42,7 @@ mod tests {
             color: Some("#4CAF50".to_string()),
         };
 
-        let result = create_time_entry(&conn, &input);
+        let result = create_time_entry_impl(&conn, &input);
         assert!(result.is_ok());
 
         let entry = result.unwrap();
@@ -59,9 +64,11 @@ mod tests {
             color: None,
         };
 
-        let result = create_time_entry(&conn, &input);
+        let result = create_time_entry_impl(&conn, &input);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("end_time must be greater than start_time"));
+        assert!(result
+            .unwrap_err()
+            .contains("end_time must be greater than start_time"));
     }
 
     #[test]
@@ -75,7 +82,7 @@ mod tests {
             label: "Task 1".to_string(),
             color: None,
         };
-        create_time_entry(&conn, &input1).unwrap();
+        create_time_entry_impl(&conn, &input1).unwrap();
 
         let input2 = TimeEntryInput {
             start_time: 1705497600000,
@@ -83,11 +90,11 @@ mod tests {
             label: "Task 2".to_string(),
             color: None,
         };
-        create_time_entry(&conn, &input2).unwrap();
+        create_time_entry_impl(&conn, &input2).unwrap();
 
         // Get entries for the day (2026-01-17)
         let day_start = 1705449600000; // 2026-01-17 00:00:00
-        let result = get_time_entries(&conn, day_start);
+        let result = get_time_entries_impl(&conn, day_start);
         assert!(result.is_ok());
 
         let entries = result.unwrap();
@@ -107,7 +114,7 @@ mod tests {
             label: "Original Task".to_string(),
             color: None,
         };
-        let entry = create_time_entry(&conn, &input).unwrap();
+        let entry = create_time_entry_impl(&conn, &input).unwrap();
 
         // Update entry
         let updates = TimeEntryUpdate {
@@ -115,7 +122,7 @@ mod tests {
             color: Some("#FF5733".to_string()),
         };
 
-        let result = update_time_entry(&conn, entry.id, &updates);
+        let result = update_time_entry_impl(&conn, entry.id, &updates);
         assert!(result.is_ok());
 
         let updated = result.unwrap();
@@ -134,15 +141,15 @@ mod tests {
             label: "Task to Delete".to_string(),
             color: None,
         };
-        let entry = create_time_entry(&conn, &input).unwrap();
+        let entry = create_time_entry_impl(&conn, &input).unwrap();
 
         // Delete entry
-        let result = delete_time_entry(&conn, entry.id);
+        let result = delete_time_entry_impl(&conn, entry.id);
         assert!(result.is_ok());
 
         // Verify deletion
         let day_start = 1705449600000;
-        let entries = get_time_entries(&conn, day_start).unwrap();
+        let entries = get_time_entries_impl(&conn, day_start).unwrap();
         assert_eq!(entries.len(), 0);
     }
 
@@ -157,8 +164,59 @@ mod tests {
             color: None,
         };
 
-        let result = create_time_entry(&conn, &input);
+        let result = create_time_entry_impl(&conn, &input);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Label cannot be empty"));
+    }
+
+    #[test]
+    fn test_overlap_detection() {
+        let conn = setup_test_db();
+
+        // Create first entry
+        let input1 = TimeEntryInput {
+            start_time: 1705490400000, // 10:00
+            end_time: 1705494000000,   // 11:00
+            label: "Task 1".to_string(),
+            color: None,
+        };
+        create_time_entry_impl(&conn, &input1).unwrap();
+
+        // Try to create overlapping entry (10:30 - 11:30)
+        let input2 = TimeEntryInput {
+            start_time: 1705492200000, // 10:30
+            end_time: 1705495800000,   // 11:30
+            label: "Task 2".to_string(),
+            color: None,
+        };
+
+        let result = create_time_entry_impl(&conn, &input2);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("overlaps"));
+    }
+
+    #[test]
+    fn test_no_overlap_adjacent() {
+        let conn = setup_test_db();
+
+        // Create first entry
+        let input1 = TimeEntryInput {
+            start_time: 1705490400000, // 10:00
+            end_time: 1705494000000,   // 11:00
+            label: "Task 1".to_string(),
+            color: None,
+        };
+        create_time_entry_impl(&conn, &input1).unwrap();
+
+        // Create adjacent entry (11:00 - 12:00) - should not overlap
+        let input2 = TimeEntryInput {
+            start_time: 1705494000000, // 11:00
+            end_time: 1705497600000,   // 12:00
+            label: "Task 2".to_string(),
+            color: None,
+        };
+
+        let result = create_time_entry_impl(&conn, &input2);
+        assert!(result.is_ok());
     }
 }

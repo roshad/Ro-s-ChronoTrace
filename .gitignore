@@ -19,8 +19,10 @@ Cargo.lock
 # Node.js / TypeScript / React
 node_modules/
 dist/
+dist-ssr/
 build/
 *.log
+*.local
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

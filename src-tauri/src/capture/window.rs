@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use windows::{
-    core::PCWSTR,
-    Win32::Foundation::{HWND, LPARAM, WPARAM},
+    Win32::Foundation::HWND,
     Win32::UI::WindowsAndMessaging::{
         GetForegroundWindow, GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId,
     },
@@ -22,7 +21,7 @@ pub fn get_active_window() -> Option<WindowActivityCapture> {
     unsafe {
         // Get the handle to the foreground window
         let hwnd = GetForegroundWindow();
-        if hwnd.0 == 0 {
+        if hwnd.0.is_null() {
             return None;
         }
 
@@ -54,7 +53,7 @@ unsafe fn get_window_text(hwnd: HWND) -> Option<String> {
 
     // Allocate buffer for window text
     let mut buffer = vec![0u16; (length + 1) as usize];
-    let chars_copied = GetWindowTextW(hwnd, PCWSTR(buffer.as_ptr()), length + 1);
+    let chars_copied = GetWindowTextW(hwnd, &mut buffer[..]);
 
     if chars_copied == 0 {
         return None;
@@ -94,7 +93,7 @@ mod tests {
         };
 
         let json = serde_json::to_string(&activity).unwrap();
-        let deserialized: WindowActivity = serde_json::from_str(&json).unwrap();
+        let deserialized: WindowActivityCapture = serde_json::from_str(&json).unwrap();
 
         assert_eq!(activity.timestamp, deserialized.timestamp);
         assert_eq!(activity.window_title, deserialized.window_title);

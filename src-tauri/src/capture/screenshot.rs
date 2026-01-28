@@ -63,13 +63,16 @@ pub async fn capture_screenshot() -> Result<String, String> {
     // Log performance
     let elapsed = start_time.elapsed();
     if elapsed.as_millis() > 100 {
-        eprintln!("WARNING: Screenshot capture took {}ms (target: <100ms)", elapsed.as_millis());
+        eprintln!(
+            "WARNING: Screenshot capture took {}ms (target: <100ms)",
+            elapsed.as_millis()
+        );
     }
 
     // Insert screenshot record into database
-    if let Err(e) = crate::data::with_db(|conn| {
-        crate::data::insert_screenshot(conn, timestamp, &relative_path)
-    }) {
+    if let Err(e) =
+        crate::data::with_db(|conn| crate::data::insert_screenshot(conn, timestamp, &relative_path))
+    {
         eprintln!("Failed to insert screenshot record: {}", e);
     }
 
@@ -77,7 +80,7 @@ pub async fn capture_screenshot() -> Result<String, String> {
 }
 
 #[cfg(target_os = "windows")]
-fn capture_windows_screenshot(file_path: &PathBuf) -> Result<(), String> {
+fn capture_windows_screenshot(file_path: &std::path::Path) -> Result<(), String> {
     use windows_capture::capture::GraphicsCaptureApiHandler;
     use windows_capture::frame::Frame;
     use windows_capture::graphics_capture_api::InternalCaptureControl;
@@ -85,17 +88,17 @@ fn capture_windows_screenshot(file_path: &PathBuf) -> Result<(), String> {
     use windows_capture::settings::{ColorFormat, Settings};
 
     struct Capture {
-        file_path: PathBuf,
+        file_path: std::path::PathBuf,
         captured: bool,
     }
 
     impl GraphicsCaptureApiHandler for Capture {
-        type Flags = PathBuf;
+        type Flags = std::path::PathBuf;
         type Error = String;
 
-        fn new(flags: Self::Flags) -> Result<Self, Self::Error> {
+        fn new(flags: windows_capture::capture::Context<Self::Flags>) -> Result<Self, Self::Error> {
             Ok(Self {
-                file_path: flags,
+                file_path: flags.flags.clone(),
                 captured: false,
             })
         }
@@ -123,33 +126,35 @@ fn capture_windows_screenshot(file_path: &PathBuf) -> Result<(), String> {
     }
 
     // Get primary monitor
-    let monitor = Monitor::primary()
-        .map_err(|e| format!("Failed to get primary monitor: {}", e))?;
+    let monitor =
+        Monitor::primary().map_err(|e| format!("Failed to get primary monitor: {}", e))?;
 
     // Configure capture settings
     let settings = Settings::new(
         monitor,
-        None,
+        windows_capture::settings::CursorCaptureSettings::Default,
+        windows_capture::settings::DrawBorderSettings::Default,
+        windows_capture::settings::SecondaryWindowSettings::Default,
+        windows_capture::settings::MinimumUpdateIntervalSettings::Default,
+        windows_capture::settings::DirtyRegionSettings::Default,
         ColorFormat::Bgra8,
-        file_path.clone(),
+        file_path.to_path_buf(),
     );
 
     // Start capture (will capture one frame and stop)
-    Capture::start(settings)
-        .map_err(|e| format!("Failed to start capture: {}", e))?;
+    Capture::start(settings).map_err(|e| format!("Failed to start capture: {}", e))?;
 
     Ok(())
 }
 
 /// Get the data directory path
 fn get_data_directory() -> Result<PathBuf, String> {
-    let local_data = dirs::data_local_dir()
-        .ok_or_else(|| "Failed to get local data directory".to_string())?;
+    let local_data =
+        dirs::data_local_dir().ok_or_else(|| "Failed to get local data directory".to_string())?;
 
     let data_dir = local_data.join("DigitalDiary");
 
-    fs::create_dir_all(&data_dir)
-        .map_err(|e| format!("Failed to create data directory: {}", e))?;
+    fs::create_dir_all(&data_dir).map_err(|e| format!("Failed to create data directory: {}", e))?;
 
     Ok(data_dir)
 }
@@ -158,10 +163,8 @@ fn get_data_directory() -> Result<PathBuf, String> {
 fn has_sufficient_disk_space(path: &PathBuf) -> Result<bool, String> {
     #[cfg(target_os = "windows")]
     {
-        use std::os::windows::fs::MetadataExt;
-
-        let metadata = fs::metadata(path)
-            .map_err(|e| format!("Failed to get disk metadata: {}", e))?;
+        let _metadata =
+            fs::metadata(path).map_err(|e| format!("Failed to get disk metadata: {}", e))?;
 
         // Get available space (this is a simplified check)
         // In production, you'd use GetDiskFreeSpaceEx from Windows API
@@ -179,8 +182,19 @@ fn has_sufficient_disk_space(path: &PathBuf) -> Result<bool, String> {
 ///
 /// Returns the file path if a screenshot exists within 5 minutes of the timestamp
 #[tauri::command]
-pub async fn get_screenshot_for_time(timestamp: i64) -> Result<Option<String>, String> {
+#[specta::specta]
+pub async fn get_screenshot_for_time(
+    timestamp: i64,
+) -> Result<crate::types::ScreenshotInfo, String> {
     crate::data::with_db(|conn| {
-        crate::data::get_screenshot_near_time(conn, timestamp, 300000) // 5 minutes tolerance
+        let file_path = crate::data::get_screenshot_near_time(conn, timestamp, 300000)?; // 5 minutes tolerance
+        Ok(crate::types::ScreenshotInfo {
+            file_path: file_path.clone(),
+            placeholder: if file_path.is_none() {
+                Some("No screenshot available".to_string())
+            } else {
+                None
+            },
+        })
     })
 }

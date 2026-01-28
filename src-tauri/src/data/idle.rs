@@ -1,13 +1,9 @@
-use rusqlite::Connection;
 use crate::data::AppResult;
 use crate::types::{IdlePeriod, IdlePeriodResolution};
+use rusqlite::Connection;
 
 /// Insert an idle period into the database
-pub fn insert_idle_period(
-    conn: &Connection,
-    start_time: i64,
-    end_time: i64,
-) -> AppResult<i64> {
+pub fn insert_idle_period(conn: &Connection, start_time: i64, end_time: i64) -> AppResult<i64> {
     conn.execute(
         "INSERT INTO idle_periods (start_time, end_time, resolution) VALUES (?1, ?2, NULL)",
         rusqlite::params![start_time, end_time],
@@ -125,14 +121,17 @@ pub fn resolve_idle_period_with_action(
                     color: None,
                 };
 
-                crate::data::time_entries::create_time_entry(conn, &entry_input)?;
+                crate::data::time_entries::create_time_entry_impl(conn, &entry_input)?;
                 update_idle_period_resolution(conn, resolution.id, "labeled")?;
             } else {
                 return Err("new_entry_label required for 'labeled' resolution".to_string());
             }
         }
         _ => {
-            return Err(format!("Invalid resolution type: {}", resolution.resolution));
+            return Err(format!(
+                "Invalid resolution type: {}",
+                resolution.resolution
+            ));
         }
     }
 
@@ -142,8 +141,6 @@ pub fn resolve_idle_period_with_action(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn test_idle_period_crud() {
         // This would require a test database setup

@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Timeline } from '../components/timeline/Timeline';
 import { EntryDialog } from '../components/timeline/EntryDialog';
+import { Navigation } from '../components/timeline/Navigation';
+import { ScreenshotPreview } from '../components/timeline/ScreenshotPreview';
 import { SearchBar } from '../components/search/SearchBar';
 import { ExportButton } from '../components/export/ExportButton';
+import { StatusIndicator } from '../components/capture/StatusIndicator';
 import { useTimelineStore } from '../services/store';
 import { api, TimeEntryInput } from '../services/api';
 
@@ -11,7 +14,7 @@ export const TimelineView: React.FC = () => {
   const { selectedDate, setSelectedDate } = useTimelineStore();
   const [showDialog, setShowDialog] = useState(false);
   const [dialogRange, setDialogRange] = useState<{ start: number; end: number } | null>(null);
-  const [hoveredScreenshot, setHoveredScreenshot] = useState<string | null>(null);
+  const [hoveredScreenshot, setHoveredScreenshot] = useState<{ filePath?: string; timestamp?: number } | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -47,7 +50,7 @@ export const TimelineView: React.FC = () => {
     try {
       const screenshot = await api.getScreenshotForTime(timestamp);
       if (screenshot.file_path) {
-        setHoveredScreenshot(screenshot.file_path);
+        setHoveredScreenshot({ filePath: screenshot.file_path, timestamp });
       } else {
         setHoveredScreenshot(null);
       }
@@ -72,59 +75,17 @@ export const TimelineView: React.FC = () => {
       <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
         <h1 style={{ margin: 0 }}>Digital Diary</h1>
 
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <StatusIndicator />
+
           <ExportButton />
 
-          <button
-            onClick={() => navigateDay(-1)}
-            style={{
-              padding: '8px 16px',
-              fontSize: '14px',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              backgroundColor: 'white',
-              cursor: 'pointer',
-            }}
-          >
-            ← Previous Day
-          </button>
-
-          <button
-            onClick={goToToday}
-            style={{
-              padding: '8px 16px',
-              fontSize: '14px',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              backgroundColor: 'white',
-              cursor: 'pointer',
-            }}
-          >
-            Today
-          </button>
-
-          <button
-            onClick={() => navigateDay(1)}
-            style={{
-              padding: '8px 16px',
-              fontSize: '14px',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              backgroundColor: 'white',
-              cursor: 'pointer',
-            }}
-          >
-            Next Day →
-          </button>
-
-          <div style={{ fontSize: '18px', fontWeight: 'bold', marginLeft: '16px' }}>
-            {selectedDate.toLocaleDateString('en-US', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })}
-          </div>
+          <Navigation
+            selectedDate={selectedDate}
+            onPreviousDay={() => navigateDay(-1)}
+            onNextDay={() => navigateDay(1)}
+            onGoToToday={goToToday}
+          />
         </div>
       </div>
 
@@ -140,18 +101,10 @@ export const TimelineView: React.FC = () => {
           />
 
           {hoveredScreenshot && (
-            <div style={{
-              marginTop: '20px',
-              padding: '16px',
-              border: '1px solid #ccc',
-              borderRadius: '8px',
-              backgroundColor: '#f9f9f9',
-            }}>
-              <h3 style={{ marginTop: 0 }}>Screenshot Preview</h3>
-              <div style={{ color: '#666', fontSize: '14px' }}>
-                {hoveredScreenshot}
-              </div>
-            </div>
+            <ScreenshotPreview
+              filePath={hoveredScreenshot.filePath}
+              timestamp={hoveredScreenshot.timestamp}
+            />
           )}
 
           <div style={{ marginTop: '20px', padding: '16px', backgroundColor: '#f5f5f5', borderRadius: '8px' }}>

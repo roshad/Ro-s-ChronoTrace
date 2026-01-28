@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use specta::Type;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -57,9 +57,22 @@ pub struct SearchResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct SearchQuery {
+    pub query: String,
+    pub limit: Option<i32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct ScreenshotInfo {
     pub file_path: Option<String>,
     pub placeholder: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct ExportOptions {
+    pub start_date: Option<i64>,
+    pub end_date: Option<i64>,
+    pub include_screenshots: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -79,4 +92,5 @@ pub struct ScreenshotRef {
 }
 
 // specta configuration for TypeScript type generation
-specta::specta!();
+// Note: Type export is handled by specta::specta!() macro
+// which registers all types with the specta type system

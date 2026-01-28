@@ -1,10 +1,10 @@
 // Prevents additional console window on Windows in release
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod types;
-mod data;
 mod capture;
+mod data;
 mod idle;
+mod types;
 
 fn main() {
     // Initialize database on startup
@@ -14,13 +14,15 @@ fn main() {
     }
 
     // Start background window capture task
-    tokio::spawn(async move {
-        start_window_capture().await;
+    std::thread::spawn(|| {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(start_window_capture());
     });
 
     // Start background screenshot capture task
-    tokio::spawn(async move {
-        start_screenshot_capture().await;
+    std::thread::spawn(|| {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(start_screenshot_capture());
     });
 
     // Start idle detection
@@ -35,8 +37,7 @@ fn main() {
             data::create_time_entry,
             data::update_time_entry,
             data::delete_time_entry,
-            capture::get_screenshot_for_time,
-            idle::resolve_idle_period,
+            data::get_idle_periods,
             data::search_activities_cmd,
             data::export_data_cmd,
         ])
@@ -61,13 +62,15 @@ async fn start_window_capture() {
                 if let Err(e) = data::with_db(|conn| {
                     data::insert_window_activities_batch(
                         conn,
-                        &buffer.iter().map(|a| types::WindowActivity {
-                            id: 0, // ID will be auto-generated
-                            timestamp: a.timestamp,
-                            window_title: a.window_title.clone(),
-                            process_name: a.process_name.clone(),
-                        })
-                        .collect::<Vec<_>>()
+                        &buffer
+                            .iter()
+                            .map(|a| types::WindowActivity {
+                                id: 0, // ID will be auto-generated
+                                timestamp: a.timestamp,
+                                window_title: a.window_title.clone(),
+                                process_name: a.process_name.clone(),
+                            })
+                            .collect::<Vec<_>>(),
                     )
                 }) {
                     eprintln!("Failed to batch insert window activities: {}", e);

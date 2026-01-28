@@ -1,6 +1,6 @@
+use dirs::home_dir;
 use rusqlite::{Connection, Result};
 use std::path::PathBuf;
-use dirs::home_dir;
 
 pub fn get_database_path() -> Result<PathBuf, String> {
     let data_dir = home_dir()
@@ -23,16 +23,29 @@ pub fn run_migrations(conn: &Connection) -> Result<(), String> {
 
 pub fn init_database() -> Result<Connection, String> {
     let db_path = get_database_path()?;
-    let conn = Connection::open(&db_path)
-        .map_err(|e| format!("Failed to open database: {}", e))?;
+    let conn = Connection::open(&db_path).map_err(|e| format!("Failed to open database: {}", e))?;
 
     run_migrations(&conn)?;
 
-    conn.execute("PRAGMA journal_mode=WAL", [])
+    conn.pragma_update(None, "journal_mode", "WAL")
         .map_err(|e| format!("Failed to enable WAL mode: {}", e))?;
 
     conn.busy_timeout(std::time::Duration::from_secs(5))
         .map_err(|e| format!("Failed to set busy timeout: {}", e))?;
 
     Ok(conn)
+}
+
+pub fn initialize_database(db_path: &std::path::Path) -> Result<(), String> {
+    let conn = Connection::open(db_path).map_err(|e| format!("Failed to open database: {}", e))?;
+
+    run_migrations(&conn)?;
+
+    conn.pragma_update(None, "journal_mode", "WAL")
+        .map_err(|e| format!("Failed to enable WAL mode: {}", e))?;
+
+    conn.busy_timeout(std::time::Duration::from_secs(5))
+        .map_err(|e| format!("Failed to set busy timeout: {}", e))?;
+
+    Ok(())
 }

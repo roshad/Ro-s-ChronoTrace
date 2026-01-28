@@ -120,6 +120,25 @@ export const IdlePrompt: React.FC<IdlePromptProps> = ({ idlePeriod, onResolved, 
             </button>
 
             <button
+              onClick={() => handleResolve('merged')}
+              disabled={loading}
+              style={{
+                padding: '12px',
+                fontSize: '16px',
+                border: '1px solid #2196F3',
+                borderRadius: '4px',
+                backgroundColor: '#2196F3',
+                color: 'white',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'background-color 0.2s',
+              }}
+              onMouseEnter={(e) => !loading && (e.currentTarget.style.backgroundColor = '#1976D2')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#2196F3')}
+            >
+              Add to previous task
+            </button>
+
+            <button
               onClick={() => setShowLabelInput(true)}
               disabled={loading}
               style={{
@@ -173,7 +192,7 @@ export const IdlePrompt: React.FC<IdlePromptProps> = ({ idlePeriod, onResolved, 
                 marginBottom: '12px',
                 boxSizing: 'border-box',
               }}
-              onKeyPress={(e) => {
+              onKeyDown={(e) => {
                 if (e.key === 'Enter' && newLabel.trim()) {
                   handleResolve('labeled');
                 }

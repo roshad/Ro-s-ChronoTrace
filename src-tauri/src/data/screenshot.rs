@@ -1,5 +1,45 @@
-use rusqlite::Connection;
 use crate::data::AppResult;
+use rusqlite::{Connection, OptionalExtension};
+use std::path::Path;
+
+/// Get screenshot directory path
+pub fn get_screenshot_path(base_path: &Path) -> std::path::PathBuf {
+    base_path.join("screenshots")
+}
+
+/// Save screenshot to file
+pub fn save_screenshot(
+    base_path: &Path,
+    timestamp: i64,
+    data: Vec<u8>,
+) -> AppResult<std::path::PathBuf> {
+    let screenshot_dir = get_screenshot_path(base_path);
+    std::fs::create_dir_all(&screenshot_dir)
+        .map_err(|e| format!("Failed to create screenshots directory: {}", e))?;
+
+    let filename = format!("{}.png", timestamp);
+    let file_path = screenshot_dir.join(&filename);
+
+    // If file already exists, add a counter suffix
+    let file_path = if file_path.exists() {
+        let mut counter = 1;
+        loop {
+            let new_filename = format!("{}_{}.png", timestamp, counter);
+            let candidate = screenshot_dir.join(&new_filename);
+            if !candidate.exists() {
+                break candidate;
+            }
+            counter += 1;
+        }
+    } else {
+        file_path
+    };
+
+    std::fs::write(&file_path, data)
+        .map_err(|e| format!("Failed to write screenshot file: {}", e))?;
+
+    Ok(file_path)
+}
 
 /// Insert a screenshot record into the database
 pub fn insert_screenshot(conn: &Connection, timestamp: i64, file_path: &str) -> AppResult<i64> {
@@ -45,7 +85,9 @@ pub fn get_screenshot_near_time(
 /// Get all screenshots for a specific day
 pub fn get_screenshots_for_day(conn: &Connection, day_id: i32) -> AppResult<Vec<(i64, String)>> {
     let mut stmt = conn
-        .prepare("SELECT timestamp, file_path FROM screenshots WHERE day_id = ?1 ORDER BY timestamp")
+        .prepare(
+            "SELECT timestamp, file_path FROM screenshots WHERE day_id = ?1 ORDER BY timestamp",
+        )
         .map_err(|e| format!("Failed to prepare query: {}", e))?;
 
     let screenshots = stmt
@@ -61,16 +103,15 @@ pub fn get_screenshots_for_day(conn: &Connection, day_id: i32) -> AppResult<Vec<
 
 /// Convert timestamp (milliseconds) to day_id (YYYYMMDD integer)
 fn timestamp_to_day_id(timestamp: i64) -> i32 {
-    use chrono::{DateTime, Local, Timelike};
+    use chrono::{DateTime, Datelike, Utc};
 
-    let dt = DateTime::from_timestamp_millis(timestamp)
-        .unwrap_or_else(|| Local::now().with_hour(0).unwrap().with_minute(0).unwrap().with_second(0).unwrap().with_nanosecond(0).unwrap().into());
+    let dt = DateTime::<Utc>::from_timestamp_millis(timestamp).unwrap_or_else(Utc::now);
 
     let year = dt.year();
     let month = dt.month();
     let day = dt.day();
 
-    (year * 10000 + month as i32 * 100 + day as i32)
+    year * 10000 + month as i32 * 100 + day as i32
 }
 
 #[cfg(test)]
@@ -79,11 +120,11 @@ mod tests {
 
     #[test]
     fn test_timestamp_to_day_id() {
-        // 2026-01-17 10:30:00 UTC
+        // 2025-01-17 10:30:00 UTC
         let timestamp = 1737110400000;
         let day_id = timestamp_to_day_id(timestamp);
 
-        // Should be 20260117
-        assert!(day_id >= 20260101 && day_id <= 20261231);
+        // Should be 20250117
+        assert_eq!(day_id, 20250117);
     }
 }

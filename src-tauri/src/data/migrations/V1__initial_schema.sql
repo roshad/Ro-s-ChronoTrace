@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS time_entries (
 -- Indexes for time entries
 CREATE INDEX IF NOT EXISTS idx_time_entries_start_time ON time_entries(start_time);
 CREATE INDEX IF NOT EXISTS idx_time_entries_end_time ON time_entries(end_time);
+CREATE INDEX IF NOT EXISTS idx_time_entries_label ON time_entries(label);
 
 -- Screenshot references
 CREATE TABLE IF NOT EXISTS screenshots (
