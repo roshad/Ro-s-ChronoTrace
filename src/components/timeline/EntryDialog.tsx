@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { TimeEntryInput } from '../../services/api';
+import { CategorySelector } from './CategorySelector';
 
 interface EntryDialogProps {
   startTime: number;
@@ -16,6 +17,7 @@ export const EntryDialog: React.FC<EntryDialogProps> = ({
 }) => {
   const [label, setLabel] = useState('');
   const [color, setColor] = useState('#4CAF50');
+  const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -41,6 +43,7 @@ export const EntryDialog: React.FC<EntryDialogProps> = ({
         end_time: endTime,
         label: label.trim(),
         color,
+        category_id: categoryId,
       });
     }
   };
@@ -75,6 +78,16 @@ export const EntryDialog: React.FC<EntryDialogProps> = ({
             <div style={{ color: '#666' }}>
               {formatTime(startTime)} - {formatTime(endTime)} ({getDuration()})
             </div>
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
+              Category
+            </label>
+            <CategorySelector
+              selectedCategoryId={categoryId}
+              onSelect={setCategoryId}
+            />
           </div>
 
           <div style={{ marginBottom: '16px' }}>

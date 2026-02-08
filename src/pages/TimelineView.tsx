@@ -2,19 +2,22 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Timeline } from '../components/timeline/Timeline';
 import { EntryDialog } from '../components/timeline/EntryDialog';
+import { EditEntryDialog } from '../components/timeline/EditEntryDialog';
 import { Navigation } from '../components/timeline/Navigation';
 import { ScreenshotPreview } from '../components/timeline/ScreenshotPreview';
-import { SearchBar } from '../components/search/SearchBar';
+import { TodaySearchBar } from '../components/search/TodaySearchBar';
 import { ExportButton } from '../components/export/ExportButton';
 import { StatusIndicator } from '../components/capture/StatusIndicator';
 import { useTimelineStore } from '../services/store';
-import { api, TimeEntryInput } from '../services/api';
+import { api, TimeEntry, TimeEntryInput, TimeEntryUpdate } from '../services/api';
+import { TimerInput } from '../components/timeline/TimerInput';
 
 export const TimelineView: React.FC = () => {
   const { selectedDate, setSelectedDate } = useTimelineStore();
   const [showDialog, setShowDialog] = useState(false);
   const [dialogRange, setDialogRange] = useState<{ start: number; end: number } | null>(null);
   const [hoveredScreenshot, setHoveredScreenshot] = useState<{ filePath?: string; timestamp?: number } | null>(null);
+  const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -35,6 +38,37 @@ export const TimelineView: React.FC = () => {
       setShowDialog(false);
       setDialogRange(null);
     },
+    onError: (error) => {
+      console.error('Failed to create time entry:', error);
+      alert(`Failed to create time entry: ${error}`);
+    },
+  });
+
+  // Update time entry mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: number; updates: TimeEntryUpdate }) =>
+      api.updateTimeEntry(id, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timeEntries', dayTimestamp] });
+      setEditingEntry(null);
+    },
+    onError: (error) => {
+      console.error('Failed to update time entry:', error);
+      alert(`Failed to update time entry: ${error}`);
+    },
+  });
+
+  // Delete time entry mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => api.deleteTimeEntry(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timeEntries', dayTimestamp] });
+      setEditingEntry(null);
+    },
+    onError: (error) => {
+      console.error('Failed to delete time entry:', error);
+      alert(`Failed to delete time entry: ${error}`);
+    },
   });
 
   const handleDragSelect = (start: number, end: number) => {
@@ -43,7 +77,28 @@ export const TimelineView: React.FC = () => {
   };
 
   const handleCreateEntry = (entry: TimeEntryInput) => {
+    console.log('Creating entry:', entry);
     createMutation.mutate(entry);
+  };
+
+  const handleEntryClick = (entry: TimeEntry) => {
+    setEditingEntry(entry);
+  };
+
+  const handleUpdateEntry = (id: number, updates: TimeEntryUpdate) => {
+    updateMutation.mutate({ id, updates });
+  };
+
+  const handleDeleteEntry = (id: number) => {
+    deleteMutation.mutate(id);
+  };
+
+  const handleStopTimer = (label: string, startTime: number, endTime: number) => {
+    handleCreateEntry({
+      label,
+      start_time: startTime,
+      end_time: endTime,
+    });
   };
 
   const handleHover = async (timestamp: number) => {
@@ -93,11 +148,13 @@ export const TimelineView: React.FC = () => {
         <div style={{ textAlign: 'center', padding: '40px' }}>Loading...</div>
       ) : (
         <>
+          <TimerInput onStop={handleStopTimer} />
           <Timeline
             date={selectedDate}
             timeEntries={timeEntries}
             onDragSelect={handleDragSelect}
             onHover={handleHover}
+            onEntryClick={handleEntryClick}
           />
 
           {hoveredScreenshot && (
@@ -111,14 +168,14 @@ export const TimelineView: React.FC = () => {
             <h3 style={{ marginTop: 0 }}>Instructions</h3>
             <ul style={{ margin: 0, paddingLeft: '20px' }}>
               <li>Click and drag on the timeline to create a new time entry</li>
+              <li>Click on an existing entry to edit or delete it</li>
               <li>Hover over the timeline to see screenshot previews</li>
               <li>Use navigation buttons to view different days</li>
             </ul>
           </div>
 
           <div style={{ marginTop: '20px' }}>
-            <h3>Search Activities</h3>
-            <SearchBar />
+            <TodaySearchBar date={selectedDate} />
           </div>
         </>
       )}
@@ -132,6 +189,15 @@ export const TimelineView: React.FC = () => {
             setShowDialog(false);
             setDialogRange(null);
           }}
+        />
+      )}
+
+      {editingEntry && (
+        <EditEntryDialog
+          entry={editingEntry}
+          onSave={handleUpdateEntry}
+          onDelete={handleDeleteEntry}
+          onCancel={() => setEditingEntry(null)}
         />
       )}
     </div>

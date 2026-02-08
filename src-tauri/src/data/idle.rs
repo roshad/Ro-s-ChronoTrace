@@ -119,6 +119,7 @@ pub fn resolve_idle_period_with_action(
                     end_time: period.end_time,
                     label: label.clone(),
                     color: None,
+                    category_id: None,
                 };
 
                 crate::data::time_entries::create_time_entry_impl(conn, &entry_input)?;

@@ -40,6 +40,48 @@ pub fn search_activities_impl(
     Ok(results)
 }
 
+/// Search activities by keyword within a specific date range
+pub fn search_activities_by_date_impl(
+    conn: &Connection,
+    query: &str,
+    start_of_day: i64,
+    end_of_day: i64,
+) -> Result<Vec<crate::types::SearchResult>, String> {
+    if query.len() < 2 {
+        return Err("Query must be at least 2 characters".to_string());
+    }
+
+    let search_pattern = format!("%{}%", query);
+
+    let mut stmt = conn.prepare(
+        "SELECT 'time_entry' as type, start_time as timestamp, label as title, NULL as process_name
+         FROM time_entries WHERE label LIKE ? AND start_time >= ? AND start_time < ?
+         UNION ALL
+         SELECT 'window_activity' as type, timestamp, window_title as title, process_name
+         FROM window_activity WHERE window_title LIKE ? AND timestamp >= ? AND timestamp < ?
+         ORDER BY timestamp DESC LIMIT 100"
+    )
+    .map_err(|e| format!("Failed to prepare search query: {}", e))?;
+
+    let result_iter = stmt
+        .query_map(rusqlite::params![&search_pattern, start_of_day, end_of_day, &search_pattern, start_of_day, end_of_day], |row| {
+            Ok(crate::types::SearchResult {
+                r#type: row.get(0)?,
+                timestamp: row.get(1)?,
+                title: row.get(2)?,
+                process_name: row.get(3)?,
+            })
+        })
+        .map_err(|e| format!("Failed to execute search: {}", e))?;
+
+    let mut results = Vec::new();
+    for result in result_iter {
+        results.push(result.map_err(|e| format!("Failed to map search result: {}", e))?);
+    }
+
+    Ok(results)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

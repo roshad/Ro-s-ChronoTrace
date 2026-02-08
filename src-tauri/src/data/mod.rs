@@ -1,3 +1,4 @@
+pub mod categories;
 pub mod database;
 pub mod export;
 pub mod idle;
@@ -70,8 +71,32 @@ pub async fn search_activities_cmd(query: String) -> AppResult<Vec<crate::types:
 }
 
 #[tauri::command]
+pub async fn search_activities_by_range_cmd(query: String, start_time: i64, end_time: i64) -> AppResult<Vec<crate::types::SearchResult>> {
+    with_db(|conn| {
+        search::search_activities_by_date_impl(conn, &query, start_time, end_time)
+    })
+}
+
+#[tauri::command]
 pub async fn export_data_cmd() -> AppResult<crate::types::ExportData> {
     with_db(export::export_data_impl)
+}
+
+#[tauri::command]
+pub async fn get_categories() -> AppResult<Vec<crate::types::Category>> {
+    with_db(|conn| categories::get_categories_impl(conn))
+}
+
+#[tauri::command]
+pub async fn create_category(
+    category: crate::types::CategoryInput,
+) -> AppResult<crate::types::Category> {
+    with_db(|conn| categories::create_category_impl(conn, &category))
+}
+
+#[tauri::command]
+pub async fn delete_category(id: i64) -> AppResult<()> {
+    with_db(|conn| categories::delete_category_impl(conn, id))
 }
 
 #[tauri::command]

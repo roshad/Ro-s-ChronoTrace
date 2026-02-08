@@ -17,7 +17,23 @@ pub fn get_database_path() -> Result<PathBuf, String> {
 
 pub fn run_migrations(conn: &Connection) -> Result<(), String> {
     conn.execute_batch(include_str!("migrations/V1__initial_schema.sql"))
-        .map_err(|e| format!("Failed to run migrations: {}", e))?;
+        .map_err(|e| format!("Failed to run V1 migrations: {}", e))?;
+
+    // Check if category_id exists in time_entries
+    let category_count: i32 = conn
+        .query_row(
+            "SELECT count(*) FROM pragma_table_info('time_entries') WHERE name='category_id'",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|e| format!("Failed to check for category_id: {}", e))?;
+    let has_category_id = category_count == 1;
+
+    if !has_category_id {
+        conn.execute_batch(include_str!("migrations/V2__categories.sql"))
+            .map_err(|e| format!("Failed to run V2 migrations: {}", e))?;
+    }
+
     Ok(())
 }
 

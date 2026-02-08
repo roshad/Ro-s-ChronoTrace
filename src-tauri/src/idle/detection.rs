@@ -21,45 +21,48 @@ pub fn start_idle_detection() {
         }
     });
 
-    // Start idle detection loop
-    tokio::spawn(async move {
-        let idle_threshold = std::time::Duration::from_secs(300); // 5 minutes
-        let mut idle_start: Option<i64> = None;
+    // Start idle detection loop in a separate thread with its own Tokio runtime
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
+        rt.block_on(async move {
+            let idle_threshold = std::time::Duration::from_secs(300); // 5 minutes
+            let mut idle_start: Option<i64> = None;
 
-        loop {
-            let now = SystemTime::now();
-            let last = { *last_activity.lock().unwrap() };
+            loop {
+                let now = SystemTime::now();
+                let last = { *last_activity.lock().unwrap() };
 
-            let idle_duration = now.duration_since(last).unwrap_or_default();
+                let idle_duration = now.duration_since(last).unwrap_or_default();
 
-            if idle_duration >= idle_threshold {
-                if idle_start.is_none() {
-                    // User just became idle
-                    let start_ms = last.duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
-                    idle_start = Some(start_ms);
-                    println!("User became idle at: {}", start_ms);
+                if idle_duration >= idle_threshold {
+                    if idle_start.is_none() {
+                        // User just became idle
+                        let start_ms = last.duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+                        idle_start = Some(start_ms);
+                        println!("User became idle at: {}", start_ms);
+                    }
+                } else if let Some(start_ms) = idle_start {
+                    // User returned from idle
+                    let end_ms = now.duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
+
+                    println!("Idle period ended: {} to {}", start_ms, end_ms);
+
+                    // Record idle period in database
+                    if let Err(e) = crate::data::with_db(|conn| {
+                        crate::data::idle::insert_idle_period(conn, start_ms, end_ms)
+                    }) {
+                        eprintln!("Failed to record idle period: {}", e);
+                    }
+
+                    // TODO: Emit Tauri event to notify frontend
+                    // app_handle.emit_all("idle-detected", IdlePeriodEvent { start_ms, end_ms })
+
+                    idle_start = None;
                 }
-            } else if let Some(start_ms) = idle_start {
-                // User returned from idle
-                let end_ms = now.duration_since(UNIX_EPOCH).unwrap().as_millis() as i64;
 
-                println!("Idle period ended: {} to {}", start_ms, end_ms);
-
-                // Record idle period in database
-                if let Err(e) = crate::data::with_db(|conn| {
-                    crate::data::idle::insert_idle_period(conn, start_ms, end_ms)
-                }) {
-                    eprintln!("Failed to record idle period: {}", e);
-                }
-
-                // TODO: Emit Tauri event to notify frontend
-                // app_handle.emit_all("idle-detected", IdlePeriodEvent { start_ms, end_ms })
-
-                idle_start = None;
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             }
-
-            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        }
+        });
     });
 }
 

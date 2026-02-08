@@ -4,11 +4,25 @@ use std::path::Path;
 
 /// Export all data to JSON
 pub fn export_data_impl(conn: &Connection) -> Result<crate::types::ExportData, String> {
+    // Check if category_id column exists
+    let has_category_id: bool = conn
+        .query_row(
+            "SELECT count(*) FROM pragma_table_info('time_entries') WHERE name='category_id'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap_or(0)
+        == 1;
+
+    let query = if has_category_id {
+        "SELECT id, start_time, end_time, label, color, category_id FROM time_entries ORDER BY start_time"
+    } else {
+        "SELECT id, start_time, end_time, label, color, NULL as category_id FROM time_entries ORDER BY start_time"
+    };
+
     // Get all time entries
     let mut stmt = conn
-        .prepare(
-            "SELECT id, start_time, end_time, label, color FROM time_entries ORDER BY start_time",
-        )
+        .prepare(query)
         .map_err(|e| format!("Failed to prepare time entries query: {}", e))?;
 
     let time_entries: Vec<crate::types::TimeEntry> = stmt
@@ -19,6 +33,7 @@ pub fn export_data_impl(conn: &Connection) -> Result<crate::types::ExportData, S
                 end_time: row.get(2)?,
                 label: row.get(3)?,
                 color: row.get(4)?,
+                category_id: row.get(5)?,
             })
         })
         .map_err(|e| format!("Failed to query time entries: {}", e))?
@@ -94,7 +109,23 @@ pub fn export_to_csv_impl(
     export_path: &Path,
     options: &crate::types::ExportOptions,
 ) -> Result<(), String> {
-    let mut query = "SELECT id, start_time, end_time, label, color FROM time_entries".to_string();
+    // Check if category_id column exists
+    let has_category_id: bool = conn
+        .query_row(
+            "SELECT count(*) FROM pragma_table_info('time_entries') WHERE name='category_id'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap_or(0)
+        == 1;
+
+    let select_part = if has_category_id {
+        "SELECT id, start_time, end_time, label, color, category_id FROM time_entries"
+    } else {
+        "SELECT id, start_time, end_time, label, color, NULL as category_id FROM time_entries"
+    };
+
+    let mut query = select_part.to_string();
     let mut params: Vec<String> = Vec::new();
 
     if let Some(start_date) = options.start_date {
@@ -125,21 +156,23 @@ pub fn export_to_csv_impl(
                 end_time: row.get(2)?,
                 label: row.get(3)?,
                 color: row.get(4)?,
+                category_id: row.get(5)?,
             })
         })
         .map_err(|e| format!("Failed to query time entries: {}", e))?
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| format!("Failed to collect time entries: {}", e))?;
 
-    let mut csv_content = String::from("id,start_time,end_time,label,color\n");
+    let mut csv_content = String::from("id,start_time,end_time,label,color,category_id\n");
     for entry in entries {
         csv_content.push_str(&format!(
-            "{},{},{},{},{}\n",
+            "{},{},{},{},{},{}\n",
             entry.id,
             entry.start_time,
             entry.end_time,
             entry.label,
-            entry.color.as_deref().unwrap_or("")
+            entry.color.as_deref().unwrap_or(""),
+            entry.category_id.map(|id| id.to_string()).unwrap_or_default()
         ));
     }
 
@@ -156,6 +189,9 @@ mod tests {
     fn setup_test_db() -> Connection {
         let conn = Connection::open_in_memory().unwrap();
         conn.execute_batch(include_str!("migrations/V1__initial_schema.sql"))
+            .unwrap();
+        // Manually add category_id for tests since V1 doesn't have it
+        conn.execute("ALTER TABLE time_entries ADD COLUMN category_id INTEGER", [])
             .unwrap();
         conn
     }
@@ -264,7 +300,7 @@ mod tests {
         export_to_csv_impl(&conn, &csv_path, &options).unwrap();
 
         let content = std::fs::read_to_string(&csv_path).unwrap();
-        assert!(content.starts_with("id,start_time,end_time,label,color\n"));
+        assert!(content.starts_with("id,start_time,end_time,label,color,category_id\n"));
         assert!(content.contains("Work"));
         assert!(content.contains("#FF0000"));
 

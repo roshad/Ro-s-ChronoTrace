@@ -24,6 +24,8 @@ Rust (Tauri 2.x), TypeScript 5.x (React 18.x): Follow standard conventions
 ## Recent Changes
 
 - 001-digital-diary: Added Rust (Tauri 2.x), TypeScript 5.x (React 18.x) + Tauri (desktop framework), React (UI), SQLite (metadata), Windows API (screenshot/window capture)
+- Toggl-like Features: Added real-time timer input and item categorization support.
 
 <!-- MANUAL ADDITIONS START -->
+- 推进功能的开发后，修改readme.md，功能特性 ，写入已完成的百分比。
 <!-- MANUAL ADDITIONS END -->

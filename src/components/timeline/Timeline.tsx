@@ -1,11 +1,13 @@
 import React, { useMemo } from 'react';
-import { TimeEntry } from '../../services/api';
+import { useQuery } from '@tanstack/react-query';
+import { api, TimeEntry } from '../../services/api';
 
 interface TimelineProps {
   date: Date;
   timeEntries: TimeEntry[];
   onHover?: (timestamp: number) => void;
   onDragSelect?: (start: number, end: number) => void;
+  onEntryClick?: (entry: TimeEntry) => void;
 }
 
 export const Timeline: React.FC<TimelineProps> = React.memo(({
@@ -13,10 +15,22 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
   timeEntries,
   onHover,
   onDragSelect,
+  onEntryClick,
 }) => {
   const width = 1200;
   const height = 100;
   const dayStart = new Date(date).setHours(0, 0, 0, 0);
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => api.getCategories(),
+  });
+
+  const categoryMap = useMemo(() => {
+    const map = new Map<number, string>();
+    categories.forEach((c) => map.set(c.id, c.color));
+    return map;
+  }, [categories]);
 
   // Convert time to x position
   const timeToX = (timestamp: number) => {
@@ -26,7 +40,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
 
   // Convert x position to timestamp
   const xToTime = (x: number) => {
-    return dayStart + (x / width) * 86400000;
+    return Math.round(dayStart + (x / width) * 86400000);
   };
 
   const [dragStart, setDragStart] = React.useState<number | null>(null);
@@ -73,10 +87,22 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
     return timeEntries.map((entry) => {
       const x = timeToX(entry.start_time);
       const blockWidth = timeToX(entry.end_time) - x;
-      const color = entry.color || '#4CAF50';
+      const color =
+        (entry.category_id && categoryMap.get(entry.category_id)) ||
+        entry.color ||
+        '#4CAF50';
 
       return (
-        <g key={entry.id}>
+        <g
+          key={entry.id}
+          style={{ cursor: 'pointer' }}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onEntryClick) {
+              onEntryClick(entry);
+            }
+          }}
+        >
           <rect
             x={x}
             y={20}
@@ -94,13 +120,14 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
             fill="white"
             fontSize={12}
             fontWeight="bold"
+            style={{ pointerEvents: 'none' }}
           >
             {entry.label}
           </text>
         </g>
       );
     });
-  }, [timeEntries, dayStart]);
+  }, [timeEntries, dayStart, onEntryClick, categoryMap]);
 
   // Render drag selection
   const dragSelection = useMemo(() => {

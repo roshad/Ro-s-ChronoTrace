@@ -8,6 +8,7 @@ pub struct TimeEntry {
     pub end_time: i64,
     pub label: String,
     pub color: Option<String>,
+    pub category_id: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -16,12 +17,27 @@ pub struct TimeEntryInput {
     pub end_time: i64,
     pub label: String,
     pub color: Option<String>,
+    pub category_id: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct TimeEntryUpdate {
     pub label: Option<String>,
     pub color: Option<String>,
+    pub category_id: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct Category {
+    pub id: i64,
+    pub name: String,
+    pub color: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct CategoryInput {
+    pub name: String,
+    pub color: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]

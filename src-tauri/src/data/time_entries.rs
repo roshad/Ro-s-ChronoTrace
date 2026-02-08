@@ -12,7 +12,7 @@ pub fn get_time_entries_impl(conn: &Connection, date: i64) -> AppResult<Vec<Time
 
     let mut stmt = conn
         .prepare(
-            "SELECT id, start_time, end_time, label, color FROM time_entries 
+            "SELECT id, start_time, end_time, label, color, category_id FROM time_entries 
          WHERE start_time >= ? AND start_time < ? 
          ORDER BY start_time",
         )
@@ -26,6 +26,7 @@ pub fn get_time_entries_impl(conn: &Connection, date: i64) -> AppResult<Vec<Time
                 end_time: row.get(2)?,
                 label: row.get(3)?,
                 color: row.get(4)?,
+                category_id: row.get(5)?,
             })
         })
         .map_err(|e| format!("Failed to query time entries: {}", e))?;
@@ -79,8 +80,14 @@ pub fn create_time_entry_impl(conn: &Connection, entry: &TimeEntryInput) -> AppR
     }
 
     conn.execute(
-        "INSERT INTO time_entries (start_time, end_time, label, color) VALUES (?, ?, ?, ?)",
-        params![entry.start_time, entry.end_time, &entry.label, &entry.color],
+        "INSERT INTO time_entries (start_time, end_time, label, color, category_id) VALUES (?, ?, ?, ?, ?)",
+        params![
+            entry.start_time,
+            entry.end_time,
+            &entry.label,
+            &entry.color,
+            entry.category_id
+        ],
     )
     .map_err(|e| format!("Failed to insert time entry: {}", e))?;
 
@@ -92,6 +99,7 @@ pub fn create_time_entry_impl(conn: &Connection, entry: &TimeEntryInput) -> AppR
         end_time: entry.end_time,
         label: entry.label.clone(),
         color: entry.color.clone(),
+        category_id: entry.category_id,
     })
 }
 
@@ -101,33 +109,41 @@ pub fn update_time_entry_impl(
     updates: &TimeEntryUpdate,
 ) -> AppResult<TimeEntry> {
     let mut set_clauses = Vec::new();
-    let mut params = Vec::new();
+    let mut params: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
 
     if let Some(ref label) = updates.label {
         if label.trim().is_empty() {
             return Err("Label cannot be empty".to_string());
         }
         set_clauses.push("label = ?");
-        params.push(label.clone());
+        params.push(Box::new(label.clone()));
     }
 
     if let Some(ref color) = updates.color {
         set_clauses.push("color = ?");
-        params.push(color.clone());
+        params.push(Box::new(color.clone()));
+    }
+
+    if let Some(category_id) = updates.category_id {
+        set_clauses.push("category_id = ?");
+        params.push(Box::new(category_id));
     }
 
     if set_clauses.is_empty() {
         return Err("No updates provided".to_string());
     }
 
-    params.push(id.to_string());
-
     let sql = format!(
         "UPDATE time_entries SET {} WHERE id = ?",
         set_clauses.join(", ")
     );
 
-    conn.execute(&sql, rusqlite::params_from_iter(params))
+    // Collect references for rusqlite
+    let params_refs: Vec<&dyn rusqlite::ToSql> = params.iter().map(|p| p.as_ref()).collect();
+    let mut all_params = params_refs;
+    all_params.push(&id);
+
+    conn.execute(&sql, rusqlite::params_from_iter(all_params))
         .map_err(|e| format!("Failed to update time entry: {}", e))?;
 
     get_time_entry_by_id(conn, id)
@@ -147,7 +163,7 @@ pub fn delete_time_entry_impl(conn: &Connection, id: i64) -> AppResult<()> {
 
 fn get_time_entry_by_id(conn: &Connection, id: i64) -> AppResult<TimeEntry> {
     conn.query_row(
-        "SELECT id, start_time, end_time, label, color FROM time_entries WHERE id = ?",
+        "SELECT id, start_time, end_time, label, color, category_id FROM time_entries WHERE id = ?",
         params![id],
         |row| {
             Ok(TimeEntry {
@@ -156,6 +172,7 @@ fn get_time_entry_by_id(conn: &Connection, id: i64) -> AppResult<TimeEntry> {
                 end_time: row.get(2)?,
                 label: row.get(3)?,
                 color: row.get(4)?,
+                category_id: row.get(5)?,
             })
         },
     )

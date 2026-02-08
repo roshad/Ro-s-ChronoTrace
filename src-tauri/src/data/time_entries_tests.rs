@@ -16,7 +16,8 @@ mod tests {
                 start_time INTEGER NOT NULL,
                 end_time INTEGER NOT NULL,
                 label TEXT NOT NULL,
-                color TEXT
+                color TEXT,
+                category_id INTEGER
             )",
             [],
         )
@@ -40,6 +41,7 @@ mod tests {
             end_time: 1705494000000,   // 2026-01-17 11:00:00
             label: "Test Task".to_string(),
             color: Some("#4CAF50".to_string()),
+            category_id: None,
         };
 
         let result = create_time_entry_impl(&conn, &input);
@@ -62,6 +64,7 @@ mod tests {
             end_time: 1705490400000, // Earlier than start
             label: "Invalid Task".to_string(),
             color: None,
+            category_id: None,
         };
 
         let result = create_time_entry_impl(&conn, &input);
@@ -81,6 +84,7 @@ mod tests {
             end_time: 1705494000000,
             label: "Task 1".to_string(),
             color: None,
+            category_id: None,
         };
         create_time_entry_impl(&conn, &input1).unwrap();
 
@@ -89,6 +93,7 @@ mod tests {
             end_time: 1705501200000,
             label: "Task 2".to_string(),
             color: None,
+            category_id: None,
         };
         create_time_entry_impl(&conn, &input2).unwrap();
 
@@ -113,6 +118,7 @@ mod tests {
             end_time: 1705494000000,
             label: "Original Task".to_string(),
             color: None,
+            category_id: None,
         };
         let entry = create_time_entry_impl(&conn, &input).unwrap();
 
@@ -120,6 +126,7 @@ mod tests {
         let updates = TimeEntryUpdate {
             label: Some("Updated Task".to_string()),
             color: Some("#FF5733".to_string()),
+            category_id: None,
         };
 
         let result = update_time_entry_impl(&conn, entry.id, &updates);
@@ -140,6 +147,7 @@ mod tests {
             end_time: 1705494000000,
             label: "Task to Delete".to_string(),
             color: None,
+            category_id: None,
         };
         let entry = create_time_entry_impl(&conn, &input).unwrap();
 
@@ -162,6 +170,7 @@ mod tests {
             end_time: 1705494000000,
             label: "".to_string(), // Empty label
             color: None,
+            category_id: None,
         };
 
         let result = create_time_entry_impl(&conn, &input);
@@ -179,6 +188,7 @@ mod tests {
             end_time: 1705494000000,   // 11:00
             label: "Task 1".to_string(),
             color: None,
+            category_id: None,
         };
         create_time_entry_impl(&conn, &input1).unwrap();
 
@@ -188,6 +198,7 @@ mod tests {
             end_time: 1705495800000,   // 11:30
             label: "Task 2".to_string(),
             color: None,
+            category_id: None,
         };
 
         let result = create_time_entry_impl(&conn, &input2);
@@ -205,6 +216,7 @@ mod tests {
             end_time: 1705494000000,   // 11:00
             label: "Task 1".to_string(),
             color: None,
+            category_id: None,
         };
         create_time_entry_impl(&conn, &input1).unwrap();
 
@@ -214,6 +226,7 @@ mod tests {
             end_time: 1705497600000,   // 12:00
             label: "Task 2".to_string(),
             color: None,
+            category_id: None,
         };
 
         let result = create_time_entry_impl(&conn, &input2);

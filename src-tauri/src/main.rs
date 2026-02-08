@@ -37,9 +37,14 @@ fn main() {
             data::create_time_entry,
             data::update_time_entry,
             data::delete_time_entry,
+            data::get_categories,
+            data::create_category,
+            data::delete_category,
             data::get_idle_periods,
             data::search_activities_cmd,
+            data::search_activities_by_range_cmd,
             data::export_data_cmd,
+            capture::screenshot::get_screenshot_for_time,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

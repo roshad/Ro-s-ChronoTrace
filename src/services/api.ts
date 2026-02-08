@@ -7,6 +7,7 @@ export interface TimeEntry {
   end_time: number;
   label: string;
   color?: string;
+  category_id?: number;
 }
 
 export interface TimeEntryInput {
@@ -14,11 +15,24 @@ export interface TimeEntryInput {
   end_time: number;
   label: string;
   color?: string;
+  category_id?: number;
 }
 
 export interface TimeEntryUpdate {
   label?: string;
   color?: string;
+  category_id?: number;
+}
+
+export interface Category {
+  id: number;
+  name: string;
+  color: string;
+}
+
+export interface CategoryInput {
+  name: string;
+  color: string;
 }
 
 export interface ScreenshotInfo {
@@ -75,9 +89,22 @@ export const api = {
   searchActivities: (query: string): Promise<SearchResult[]> =>
     invoke('search_activities_cmd', { query }),
 
+  searchActivitiesByRange: (query: string, startTime: number, endTime: number): Promise<SearchResult[]> =>
+    invoke('search_activities_by_range_cmd', { query, startTime, endTime }),
+
   // Export
   exportData: (): Promise<ExportData> =>
     invoke('export_data_cmd'),
+
+  // Categories
+  getCategories: (): Promise<Category[]> =>
+    invoke('get_categories'),
+
+  createCategory: (category: CategoryInput): Promise<Category> =>
+    invoke('create_category', { category }),
+
+  deleteCategory: (id: number): Promise<void> =>
+    invoke('delete_category', { id }),
 
   // Idle
   resolveIdlePeriod: (resolution: {
