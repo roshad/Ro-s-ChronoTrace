@@ -1,4 +1,5 @@
 use chrono::Local;
+use base64::Engine;
 use std::fs;
 use std::path::PathBuf;
 
@@ -188,8 +189,30 @@ pub async fn get_screenshot_for_time(
 ) -> Result<crate::types::ScreenshotInfo, String> {
     crate::data::with_db(|conn| {
         let file_path = crate::data::get_screenshot_near_time(conn, timestamp, 300000)?; // 5 minutes tolerance
+        let data_url = file_path
+            .as_ref()
+            .and_then(|relative_path| {
+                let local_data = dirs::data_local_dir()?;
+                let absolute_path = local_data.join("DigitalDiary").join(relative_path);
+                match fs::read(&absolute_path) {
+                    Ok(bytes) => Some(format!(
+                        "data:image/png;base64,{}",
+                        base64::engine::general_purpose::STANDARD.encode(bytes)
+                    )),
+                    Err(e) => {
+                        eprintln!(
+                            "Failed to read screenshot file for preview {}: {}",
+                            absolute_path.display(),
+                            e
+                        );
+                        None
+                    }
+                }
+            });
+
         Ok(crate::types::ScreenshotInfo {
             file_path: file_path.clone(),
+            data_url,
             placeholder: if file_path.is_none() {
                 Some("No screenshot available".to_string())
             } else {

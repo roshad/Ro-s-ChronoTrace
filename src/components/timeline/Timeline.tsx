@@ -6,6 +6,7 @@ interface TimelineProps {
   date: Date;
   timeEntries: TimeEntry[];
   onHover?: (timestamp: number) => void;
+  onHoverEnd?: () => void;
   onDragSelect?: (start: number, end: number) => void;
   onEntryClick?: (entry: TimeEntry) => void;
 }
@@ -14,6 +15,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
   date,
   timeEntries,
   onHover,
+  onHoverEnd,
   onDragSelect,
   onEntryClick,
 }) => {
@@ -58,20 +60,21 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const timestamp = xToTime(x);
+    const isDragging = dragStart !== null;
 
     // Hover preview
-    if (onHover && !dragStart) {
+    if (onHover && !isDragging) {
       onHover(timestamp);
     }
 
     // Drag selection
-    if (dragStart) {
+    if (isDragging) {
       setDragEnd(timestamp);
     }
   };
 
   const handleMouseUp = () => {
-    if (dragStart && dragEnd && onDragSelect) {
+    if (dragStart !== null && dragEnd !== null && onDragSelect) {
       const start = Math.min(dragStart, dragEnd);
       const end = Math.max(dragStart, dragEnd);
       if (end - start > 60000) { // At least 1 minute
@@ -80,6 +83,13 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
     }
     setDragStart(null);
     setDragEnd(null);
+  };
+
+  const handleMouseLeave = () => {
+    handleMouseUp();
+    if (onHoverEnd) {
+      onHoverEnd();
+    }
   };
 
   // Render time blocks
@@ -131,7 +141,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
 
   // Render drag selection
   const dragSelection = useMemo(() => {
-    if (!dragStart || !dragEnd) return null;
+    if (dragStart === null || dragEnd === null) return null;
 
     const start = Math.min(dragStart, dragEnd);
     const end = Math.max(dragStart, dragEnd);
@@ -162,7 +172,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
       >
         {/* Background */}
         <rect width={width} height={height} fill="#f5f5f5" />

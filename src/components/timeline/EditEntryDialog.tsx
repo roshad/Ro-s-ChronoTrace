@@ -6,6 +6,7 @@ interface EditEntryDialogProps {
   entry: TimeEntry;
   onSave: (id: number, updates: TimeEntryUpdate) => void;
   onDelete: (id: number) => void;
+  onRestart: (entry: TimeEntry) => void;
   onCancel: () => void;
 }
 
@@ -13,12 +14,38 @@ export const EditEntryDialog: React.FC<EditEntryDialogProps> = ({
   entry,
   onSave,
   onDelete,
+  onRestart,
   onCancel,
 }) => {
   const [label, setLabel] = useState(entry.label);
   const [color, setColor] = useState(entry.color || '#4CAF50');
   const [categoryId, setCategoryId] = useState<number | undefined>(entry.category_id);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [startTimeInput, setStartTimeInput] = useState(formatTimeInput(entry.start_time));
+  const [endTimeInput, setEndTimeInput] = useState(formatTimeInput(entry.end_time));
+
+  function formatTimeInput(timestamp: number) {
+    const d = new Date(timestamp);
+    const hh = d.getHours().toString().padStart(2, '0');
+    const mm = d.getMinutes().toString().padStart(2, '0');
+    return `${hh}:${mm}`;
+  }
+
+  const parseTimeInput = (value: string, baseTimestamp: number) => {
+    const match = value.match(/^(\d{2}):(\d{2})$/);
+    if (!match) {
+      return null;
+    }
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+      return null;
+    }
+
+    const base = new Date(baseTimestamp);
+    base.setHours(hours, minutes, 0, 0);
+    return base.getTime();
+  };
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -39,7 +66,22 @@ export const EditEntryDialog: React.FC<EditEntryDialogProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (label.trim()) {
+      const parsedStartTime = parseTimeInput(startTimeInput, entry.start_time);
+      const parsedEndTime = parseTimeInput(endTimeInput, entry.end_time);
+
+      if (!parsedStartTime || !parsedEndTime) {
+        alert('Invalid time format. Please use HH:mm.');
+        return;
+      }
+
+      if (parsedEndTime <= parsedStartTime) {
+        alert('End time must be after start time.');
+        return;
+      }
+
       onSave(entry.id, {
+        start_time: parsedStartTime,
+        end_time: parsedEndTime,
         label: label.trim(),
         color,
         category_id: categoryId,
@@ -83,8 +125,33 @@ export const EditEntryDialog: React.FC<EditEntryDialogProps> = ({
               <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
                 Time Range
               </label>
-              <div style={{ color: '#666' }}>
-                {formatTime(entry.start_time)} - {formatTime(entry.end_time)} ({getDuration()})
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="time"
+                  value={startTimeInput}
+                  onChange={(e) => setStartTimeInput(e.target.value)}
+                  style={{
+                    padding: '8px',
+                    fontSize: '14px',
+                    border: '1px solid #ccc',
+                    borderRadius: '4px',
+                  }}
+                />
+                <span>-</span>
+                <input
+                  type="time"
+                  value={endTimeInput}
+                  onChange={(e) => setEndTimeInput(e.target.value)}
+                  style={{
+                    padding: '8px',
+                    fontSize: '14px',
+                    border: '1px solid #ccc',
+                    borderRadius: '4px',
+                  }}
+                />
+              </div>
+              <div style={{ color: '#666', marginTop: '6px' }}>
+                Current: {formatTime(entry.start_time)} - {formatTime(entry.end_time)} ({getDuration()})
               </div>
             </div>
 
@@ -158,6 +225,22 @@ export const EditEntryDialog: React.FC<EditEntryDialogProps> = ({
                 }}
               >
                 Delete
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onRestart(entry)}
+                style={{
+                  padding: '8px 16px',
+                  fontSize: '14px',
+                  border: '1px solid #2196F3',
+                  borderRadius: '4px',
+                  backgroundColor: 'white',
+                  color: '#2196F3',
+                  cursor: 'pointer',
+                }}
+              >
+                Restart
               </button>
 
               <div style={{ display: 'flex', gap: '8px' }}>

@@ -22,6 +22,8 @@ pub struct TimeEntryInput {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct TimeEntryUpdate {
+    pub start_time: Option<i64>,
+    pub end_time: Option<i64>,
     pub label: Option<String>,
     pub color: Option<String>,
     pub category_id: Option<i64>,
@@ -81,6 +83,7 @@ pub struct SearchQuery {
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct ScreenshotInfo {
     pub file_path: Option<String>,
+    pub data_url: Option<String>,
     pub placeholder: Option<String>,
 }
 

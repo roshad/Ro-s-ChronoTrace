@@ -2,11 +2,13 @@ import React from 'react';
 
 interface ScreenshotPreviewProps {
   filePath?: string;
+  dataUrl?: string;
   timestamp?: number;
 }
 
 export const ScreenshotPreview: React.FC<ScreenshotPreviewProps> = ({
   filePath,
+  dataUrl,
   timestamp,
 }) => {
   const formatTime = (ts: number) => {
@@ -18,7 +20,7 @@ export const ScreenshotPreview: React.FC<ScreenshotPreviewProps> = ({
     });
   };
 
-  if (!filePath) {
+  if (!filePath && !dataUrl) {
     return (
       <div
         style={{
@@ -36,6 +38,8 @@ export const ScreenshotPreview: React.FC<ScreenshotPreviewProps> = ({
       </div>
     );
   }
+
+  const imageSrc = dataUrl || (filePath ? `asset://localhost/${filePath}` : undefined);
 
   return (
     <div
@@ -66,7 +70,7 @@ export const ScreenshotPreview: React.FC<ScreenshotPreviewProps> = ({
         }}
       >
         <img
-          src={`asset://localhost/${filePath}`}
+          src={imageSrc}
           alt="Screenshot"
           style={{
             maxWidth: '100%',

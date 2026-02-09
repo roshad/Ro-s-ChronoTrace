@@ -108,8 +108,41 @@ pub fn update_time_entry_impl(
     id: i64,
     updates: &TimeEntryUpdate,
 ) -> AppResult<TimeEntry> {
+    let existing = get_time_entry_by_id(conn, id)?;
+    let next_start_time = updates.start_time.unwrap_or(existing.start_time);
+    let next_end_time = updates.end_time.unwrap_or(existing.end_time);
+
+    if next_end_time <= next_start_time {
+        return Err("end_time must be greater than start_time".to_string());
+    }
+
+    if updates.start_time.is_some() || updates.end_time.is_some() {
+        let overlap_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(1) FROM time_entries
+                 WHERE id != ?1 AND start_time < ?2 AND end_time > ?3",
+                params![id, next_end_time, next_start_time],
+                |row| row.get(0),
+            )
+            .map_err(|e| format!("Failed to check overlapping entries: {}", e))?;
+
+        if overlap_count > 0 {
+            return Err("Time entry overlaps with an existing entry".to_string());
+        }
+    }
+
     let mut set_clauses = Vec::new();
     let mut params: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
+
+    if let Some(start_time) = updates.start_time {
+        set_clauses.push("start_time = ?");
+        params.push(Box::new(start_time));
+    }
+
+    if let Some(end_time) = updates.end_time {
+        set_clauses.push("end_time = ?");
+        params.push(Box::new(end_time));
+    }
 
     if let Some(ref label) = updates.label {
         if label.trim().is_empty() {

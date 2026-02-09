@@ -3,14 +3,16 @@ import { useTimelineStore } from '../../services/store';
 import { CategorySelector } from './CategorySelector';
 
 interface TimerInputProps {
-    onStop: (label: string, startTime: number, endTime: number, categoryId?: number) => void;
+    onStart: (label: string, startTime: number, categoryId?: number) => Promise<number>;
+    onStop: (entryId: number, endTime: number) => Promise<void>;
 }
 
-export const TimerInput: React.FC<TimerInputProps> = ({ onStop }) => {
+export const TimerInput: React.FC<TimerInputProps> = ({ onStart, onStop }) => {
     const { activeTimer, startTimer, stopTimer } = useTimelineStore();
     const [label, setLabel] = useState('');
     const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
     const [elapsed, setElapsed] = useState(0);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         let interval: number | undefined;
@@ -27,16 +29,43 @@ export const TimerInput: React.FC<TimerInputProps> = ({ onStop }) => {
         return () => clearInterval(interval);
     }, [activeTimer]);
 
-    const handleStartStop = () => {
+    const handleStartStop = async () => {
+        if (loading) {
+            return;
+        }
+
         if (activeTimer) {
-            const endTime = Date.now();
-            onStop(activeTimer.label, activeTimer.startTime, endTime, activeTimer.categoryId);
-            stopTimer();
-            setLabel('');
-            setCategoryId(undefined);
+            try {
+                setLoading(true);
+                const endTime = Date.now();
+                await onStop(activeTimer.entryId, endTime);
+                stopTimer();
+                setLabel('');
+                setCategoryId(undefined);
+            } catch (error) {
+                console.error('Failed to stop timer:', error);
+                alert(`Failed to stop timer: ${error}`);
+            } finally {
+                setLoading(false);
+            }
         } else {
             if (label.trim()) {
-                startTimer(label, categoryId);
+                try {
+                    setLoading(true);
+                    const startTime = Date.now();
+                    const entryId = await onStart(label.trim(), startTime, categoryId);
+                    startTimer({
+                        entryId,
+                        startTime,
+                        label: label.trim(),
+                        categoryId,
+                    });
+                } catch (error) {
+                    console.error('Failed to start timer:', error);
+                    alert(`Failed to start timer: ${error}`);
+                } finally {
+                    setLoading(false);
+                }
             }
         }
     };
@@ -71,7 +100,7 @@ export const TimerInput: React.FC<TimerInputProps> = ({ onStop }) => {
                 placeholder="What are you working on?"
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
-                disabled={!!activeTimer}
+                disabled={!!activeTimer || loading}
                 style={{
                     flex: 1,
                     padding: '10px 16px',
@@ -108,6 +137,7 @@ export const TimerInput: React.FC<TimerInputProps> = ({ onStop }) => {
 
             <button
                 onClick={handleStartStop}
+                disabled={loading || (!activeTimer && !label.trim())}
                 style={{
                     padding: '10px 24px',
                     backgroundColor: activeTimer ? '#ff4757' : '#2ed573',
@@ -122,11 +152,12 @@ export const TimerInput: React.FC<TimerInputProps> = ({ onStop }) => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     minWidth: '100px',
+                    opacity: loading || (!activeTimer && !label.trim()) ? 0.6 : 1,
                 }}
                 onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.98)')}
                 onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
             >
-                {activeTimer ? 'Stop' : 'Start'}
+                {loading ? '...' : (activeTimer ? 'Stop' : 'Start')}
             </button>
         </div>
     );

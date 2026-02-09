@@ -33,6 +33,7 @@ tempfile = "3.10"
 specta = { version = "2.0.0-rc.22", features = ["derive", "function"] }
 specta-typescript = "0.0.9"
 tauri-specta = { version = "2.0.0-rc.20", features = ["typescript"] }
+base64 = "0.22"
 
 [dev-dependencies]
 tempfile = "3.10"

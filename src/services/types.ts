@@ -16,6 +16,8 @@ export interface TimeEntryInput {
 }
 
 export interface TimeEntryUpdate {
+  start_time?: number;
+  end_time?: number;
   label?: string;
   color?: string;
 }
@@ -50,6 +52,7 @@ export interface SearchResult {
 
 export interface ScreenshotInfo {
   file_path?: string;
+  data_url?: string;
   placeholder?: string;
 }
 

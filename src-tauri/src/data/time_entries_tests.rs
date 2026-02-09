@@ -124,6 +124,8 @@ mod tests {
 
         // Update entry
         let updates = TimeEntryUpdate {
+            start_time: None,
+            end_time: None,
             label: Some("Updated Task".to_string()),
             color: Some("#FF5733".to_string()),
             category_id: None,

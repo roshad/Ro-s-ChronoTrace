@@ -12,7 +12,7 @@ mod tests {
         create_time_entry_impl, delete_time_entry_impl, get_time_entries_impl,
         update_time_entry_impl,
     };
-    use digital_diary::types::{ExportOptions, SearchQuery, TimeEntryInput, TimeEntryUpdate};
+    use digital_diary::types::{ExportOptions, TimeEntryInput, TimeEntryUpdate};
 
     #[test]
     fn test_create_time_entry_command() {
@@ -33,6 +33,7 @@ mod tests {
             end_time: 2000,
             label: "Test Entry".to_string(),
             color: Some("#4CAF50".to_string()),
+            category_id: None,
         };
 
         // Execute the create_time_entry_impl function
@@ -125,8 +126,11 @@ mod tests {
 
         // Create an update input
         let update = TimeEntryUpdate {
+            start_time: None,
+            end_time: None,
             label: Some("Updated Label".to_string()),
             color: Some("#2196F3".to_string()),
+            category_id: None,
         };
 
         // Execute the update_time_entry_impl function
@@ -295,8 +299,11 @@ mod tests {
 
         // Try to update a non-existent entry
         let update = TimeEntryUpdate {
+            start_time: None,
+            end_time: None,
             label: Some("Updated Label".to_string()),
             color: None,
+            category_id: None,
         };
 
         let result = update_time_entry_impl(&conn, 99999, &update);
@@ -326,6 +333,7 @@ mod tests {
             end_time: 1000,
             label: "Invalid Entry".to_string(),
             color: Some("#4CAF50".to_string()),
+            category_id: None,
         };
 
         let result = create_time_entry_impl(&conn, &input);

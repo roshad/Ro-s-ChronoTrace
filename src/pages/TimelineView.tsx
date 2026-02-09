@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Timeline } from '../components/timeline/Timeline';
 import { EntryDialog } from '../components/timeline/EntryDialog';
@@ -13,11 +13,13 @@ import { api, TimeEntry, TimeEntryInput, TimeEntryUpdate } from '../services/api
 import { TimerInput } from '../components/timeline/TimerInput';
 
 export const TimelineView: React.FC = () => {
-  const { selectedDate, setSelectedDate } = useTimelineStore();
+  const { selectedDate, setSelectedDate, activeTimer, startTimer } = useTimelineStore();
   const [showDialog, setShowDialog] = useState(false);
   const [dialogRange, setDialogRange] = useState<{ start: number; end: number } | null>(null);
-  const [hoveredScreenshot, setHoveredScreenshot] = useState<{ filePath?: string; timestamp?: number } | null>(null);
+  const [hoveredScreenshot, setHoveredScreenshot] = useState<{ filePath?: string; dataUrl?: string; timestamp?: number } | null>(null);
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
+  const hoverRequestIdRef = useRef(0);
+  const hoverDebounceTimerRef = useRef<number | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -58,6 +60,18 @@ export const TimelineView: React.FC = () => {
     },
   });
 
+  // Timer growth updates should not close edit dialogs.
+  const timerUpdateMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: number; updates: TimeEntryUpdate }) =>
+      api.updateTimeEntry(id, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timeEntries', dayTimestamp] });
+    },
+    onError: (error) => {
+      console.error('Failed to update running timer entry:', error);
+    },
+  });
+
   // Delete time entry mutation
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.deleteTimeEntry(id),
@@ -93,27 +107,114 @@ export const TimelineView: React.FC = () => {
     deleteMutation.mutate(id);
   };
 
-  const handleStopTimer = (label: string, startTime: number, endTime: number) => {
-    handleCreateEntry({
+  const handleRestartEntry = async (entry: TimeEntry) => {
+    if (activeTimer) {
+      alert('Please stop the current timer before restarting another entry.');
+      return;
+    }
+
+    const now = Date.now();
+    try {
+      await timerUpdateMutation.mutateAsync({
+        id: entry.id,
+        updates: { end_time: now },
+      });
+
+      startTimer({
+        entryId: entry.id,
+        startTime: entry.start_time,
+        label: entry.label,
+        categoryId: entry.category_id,
+      });
+
+      setEditingEntry(null);
+    } catch (error) {
+      console.error('Failed to restart entry:', error);
+      alert(`Failed to restart entry: ${error}`);
+    }
+  };
+
+  const handleStartTimer = async (label: string, startTime: number, categoryId?: number): Promise<number> => {
+    const entry = await createMutation.mutateAsync({
       label,
       start_time: startTime,
-      end_time: endTime,
+      // Create with a valid initial duration, then grow by updating end_time.
+      end_time: startTime + 1000,
+      category_id: categoryId,
+    });
+    return entry.id;
+  };
+
+  const handleStopTimer = async (entryId: number, endTime: number): Promise<void> => {
+    await timerUpdateMutation.mutateAsync({
+      id: entryId,
+      updates: { end_time: endTime },
     });
   };
 
-  const handleHover = async (timestamp: number) => {
-    try {
-      const screenshot = await api.getScreenshotForTime(timestamp);
-      if (screenshot.file_path) {
-        setHoveredScreenshot({ filePath: screenshot.file_path, timestamp });
-      } else {
+  const handleHover = (timestamp: number) => {
+    if (hoverDebounceTimerRef.current) {
+      window.clearTimeout(hoverDebounceTimerRef.current);
+    }
+
+    hoverDebounceTimerRef.current = window.setTimeout(async () => {
+      const requestId = ++hoverRequestIdRef.current;
+
+      try {
+        const screenshot = await api.getScreenshotForTime(timestamp);
+        if (requestId !== hoverRequestIdRef.current) {
+          return;
+        }
+
+        if (screenshot.file_path || screenshot.data_url) {
+          setHoveredScreenshot({ filePath: screenshot.file_path, dataUrl: screenshot.data_url, timestamp });
+        } else {
+          setHoveredScreenshot(null);
+        }
+      } catch (error) {
+        if (requestId !== hoverRequestIdRef.current) {
+          return;
+        }
+
+        console.error('Failed to fetch screenshot:', error);
         setHoveredScreenshot(null);
       }
-    } catch (error) {
-      console.error('Failed to fetch screenshot:', error);
-      setHoveredScreenshot(null);
-    }
+    }, 120);
   };
+
+  const handleHoverEnd = () => {
+    hoverRequestIdRef.current += 1;
+    if (hoverDebounceTimerRef.current) {
+      window.clearTimeout(hoverDebounceTimerRef.current);
+      hoverDebounceTimerRef.current = null;
+    }
+    setHoveredScreenshot(null);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hoverDebounceTimerRef.current) {
+        window.clearTimeout(hoverDebounceTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!activeTimer) {
+      return;
+    }
+
+    const timerId = window.setInterval(() => {
+      timerUpdateMutation.mutate({
+        id: activeTimer.entryId,
+        updates: { end_time: Date.now() },
+      });
+    }, 3000);
+
+    return () => {
+      window.clearInterval(timerId);
+    };
+  }, [activeTimer?.entryId]);
 
   const navigateDay = (offset: number) => {
     const newDate = new Date(selectedDate);
@@ -148,18 +249,20 @@ export const TimelineView: React.FC = () => {
         <div style={{ textAlign: 'center', padding: '40px' }}>Loading...</div>
       ) : (
         <>
-          <TimerInput onStop={handleStopTimer} />
+          <TimerInput onStart={handleStartTimer} onStop={handleStopTimer} />
           <Timeline
             date={selectedDate}
             timeEntries={timeEntries}
             onDragSelect={handleDragSelect}
             onHover={handleHover}
+            onHoverEnd={handleHoverEnd}
             onEntryClick={handleEntryClick}
           />
 
           {hoveredScreenshot && (
             <ScreenshotPreview
               filePath={hoveredScreenshot.filePath}
+              dataUrl={hoveredScreenshot.dataUrl}
               timestamp={hoveredScreenshot.timestamp}
             />
           )}
@@ -197,6 +300,7 @@ export const TimelineView: React.FC = () => {
           entry={editingEntry}
           onSave={handleUpdateEntry}
           onDelete={handleDeleteEntry}
+          onRestart={handleRestartEntry}
           onCancel={() => setEditingEntry(null)}
         />
       )}

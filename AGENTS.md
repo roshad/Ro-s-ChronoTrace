@@ -27,5 +27,6 @@ Rust (Tauri 2.x), TypeScript 5.x (React 18.x): Follow standard conventions
 - Toggl-like Features: Added real-time timer input and item categorization support.
 
 <!-- MANUAL ADDITIONS START -->
-- 推进功能的开发后，修改readme.md，功能特性 ，写入已完成的百分比。
+- 推进功能的开发后，先读取再修改PLAN.md ，写入每个子功能和总体完成的百分比。先读再写是因为避免覆盖人工修改的内容。
+- 
 <!-- MANUAL ADDITIONS END -->
