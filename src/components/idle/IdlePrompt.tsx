@@ -20,10 +20,7 @@ export const IdlePrompt: React.FC<IdlePromptProps> = ({ idlePeriod, onResolved, 
     const minutes = Math.floor(ms / 60000);
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
-
-    if (hours > 0) {
-      return `${hours}h ${remainingMinutes}m`;
-    }
+    if (hours > 0) return `${hours}h ${remainingMinutes}m`;
     return `${minutes}m`;
   };
 
@@ -56,37 +53,11 @@ export const IdlePrompt: React.FC<IdlePromptProps> = ({ idlePeriod, onResolved, 
   const duration = idlePeriod.end_time - idlePeriod.start_time;
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          backgroundColor: 'white',
-          borderRadius: '8px',
-          padding: '24px',
-          maxWidth: '500px',
-          width: '90%',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 style={{ marginTop: 0, marginBottom: '16px', fontSize: '20px' }}>
-          Idle Time Detected
-        </h2>
+    <div className="dialog-overlay" onClick={onClose}>
+      <div className="dialog-card" onClick={(e) => e.stopPropagation()}>
+        <h2 className="dialog-title">Idle Time Detected</h2>
 
-        <div style={{ marginBottom: '24px', color: '#666' }}>
+        <div className="muted" style={{ marginBottom: 24 }}>
           <p style={{ margin: '8px 0' }}>
             <strong>Duration:</strong> {formatDuration(duration)}
           </p>
@@ -95,83 +66,20 @@ export const IdlePrompt: React.FC<IdlePromptProps> = ({ idlePeriod, onResolved, 
           </p>
         </div>
 
-        <p style={{ marginBottom: '16px', color: '#333' }}>
-          What would you like to do with this idle time?
-        </p>
+        <p style={{ marginBottom: 16 }}>What would you like to do with this idle time?</p>
 
         {!showLabelInput ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <button
-              onClick={() => handleResolve('discarded')}
-              disabled={loading}
-              style={{
-                padding: '12px',
-                fontSize: '16px',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                backgroundColor: 'white',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                transition: 'background-color 0.2s',
-              }}
-              onMouseEnter={(e) => !loading && (e.currentTarget.style.backgroundColor = '#f5f5f5')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'white')}
-            >
+          <div className="stack-col">
+            <button onClick={() => handleResolve('discarded')} disabled={loading} className="btn btn-secondary">
               Discard time (keep as gap)
             </button>
-
-            <button
-              onClick={() => handleResolve('merged')}
-              disabled={loading}
-              style={{
-                padding: '12px',
-                fontSize: '16px',
-                border: '1px solid #2196F3',
-                borderRadius: '4px',
-                backgroundColor: '#2196F3',
-                color: 'white',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                transition: 'background-color 0.2s',
-              }}
-              onMouseEnter={(e) => !loading && (e.currentTarget.style.backgroundColor = '#1976D2')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#2196F3')}
-            >
+            <button onClick={() => handleResolve('merged')} disabled={loading} className="btn btn-primary">
               Add to previous task
             </button>
-
-            <button
-              onClick={() => setShowLabelInput(true)}
-              disabled={loading}
-              style={{
-                padding: '12px',
-                fontSize: '16px',
-                border: '1px solid #4CAF50',
-                borderRadius: '4px',
-                backgroundColor: '#4CAF50',
-                color: 'white',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                transition: 'background-color 0.2s',
-              }}
-              onMouseEnter={(e) => !loading && (e.currentTarget.style.backgroundColor = '#45a049')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#4CAF50')}
-            >
+            <button onClick={() => setShowLabelInput(true)} disabled={loading} className="btn btn-success">
               Create new task
             </button>
-
-            <button
-              onClick={onClose}
-              disabled={loading}
-              style={{
-                padding: '12px',
-                fontSize: '16px',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                backgroundColor: 'white',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                transition: 'background-color 0.2s',
-              }}
-              onMouseEnter={(e) => !loading && (e.currentTarget.style.backgroundColor = '#f5f5f5')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'white')}
-            >
+            <button onClick={onClose} disabled={loading} className="btn btn-ghost">
               Decide later
             </button>
           </div>
@@ -183,15 +91,8 @@ export const IdlePrompt: React.FC<IdlePromptProps> = ({ idlePeriod, onResolved, 
               onChange={(e) => setNewLabel(e.target.value)}
               placeholder="Enter task label..."
               autoFocus
-              style={{
-                width: '100%',
-                padding: '12px',
-                fontSize: '16px',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                marginBottom: '12px',
-                boxSizing: 'border-box',
-              }}
+              className="input"
+              style={{ marginBottom: 12 }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && newLabel.trim()) {
                   handleResolve('labeled');
@@ -199,37 +100,17 @@ export const IdlePrompt: React.FC<IdlePromptProps> = ({ idlePeriod, onResolved, 
               }}
             />
 
-            <div style={{ display: 'flex', gap: '12px' }}>
+            <div className="toolbar-row">
               <button
                 onClick={() => handleResolve('labeled')}
                 disabled={loading || !newLabel.trim()}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  fontSize: '16px',
-                  border: 'none',
-                  borderRadius: '4px',
-                  backgroundColor: newLabel.trim() ? '#4CAF50' : '#ccc',
-                  color: 'white',
-                  cursor: loading || !newLabel.trim() ? 'not-allowed' : 'pointer',
-                }}
+                className="btn btn-success"
+                style={{ flex: 1 }}
               >
                 {loading ? 'Creating...' : 'Create Task'}
               </button>
 
-              <button
-                onClick={() => setShowLabelInput(false)}
-                disabled={loading}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  fontSize: '16px',
-                  border: '1px solid #ccc',
-                  borderRadius: '4px',
-                  backgroundColor: 'white',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                }}
-              >
+              <button onClick={() => setShowLabelInput(false)} disabled={loading} className="btn btn-secondary" style={{ flex: 1 }}>
                 Back
               </button>
             </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SearchBar } from './SearchBar';
 import { api } from '../../services/api';
@@ -30,14 +30,23 @@ const renderWithQueryClient = (component: React.ReactElement) => {
   );
 };
 
+const advanceTimers = (ms: number) => {
+  act(() => {
+    jest.advanceTimersByTime(ms);
+  });
+};
+
 describe('SearchBar', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
+    mockSearchActivities.mockResolvedValue([]);
   });
 
   afterEach(() => {
-    jest.runOnlyPendingTimers();
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
     jest.useRealTimers();
   });
 
@@ -69,7 +78,7 @@ describe('SearchBar', () => {
     expect(mockSearchActivities).not.toHaveBeenCalled();
 
     // Fast-forward 300ms
-    jest.advanceTimersByTime(300);
+    advanceTimers(300);
 
     await waitFor(() => {
       expect(mockSearchActivities).toHaveBeenCalledWith('test');
@@ -82,7 +91,7 @@ describe('SearchBar', () => {
     const searchInput = screen.getByPlaceholderText('Search activities... (min 2 characters)');
     fireEvent.change(searchInput, { target: { value: 't' } });
 
-    jest.advanceTimersByTime(300);
+    advanceTimers(300);
 
     expect(mockSearchActivities).not.toHaveBeenCalled();
   });
@@ -97,7 +106,7 @@ describe('SearchBar', () => {
     const searchInput = screen.getByPlaceholderText('Search activities... (min 2 characters)');
     fireEvent.change(searchInput, { target: { value: 'test' } });
 
-    jest.advanceTimersByTime(300);
+    advanceTimers(300);
 
     // Wait for loading state to appear
     await waitFor(() => {
@@ -122,7 +131,7 @@ describe('SearchBar', () => {
     const searchInput = screen.getByPlaceholderText('Search activities... (min 2 characters)');
     fireEvent.change(searchInput, { target: { value: 'test' } });
 
-    jest.advanceTimersByTime(300);
+    advanceTimers(300);
 
     await waitFor(() => {
       expect(screen.getByText('Test Activity')).toBeInTheDocument();
@@ -145,7 +154,7 @@ describe('SearchBar', () => {
     const searchInput = screen.getByPlaceholderText('Search activities... (min 2 characters)');
     fireEvent.change(searchInput, { target: { value: 'test' } });
 
-    jest.advanceTimersByTime(300);
+    advanceTimers(300);
 
     await waitFor(() => {
       expect(screen.getByText('No results found')).toBeInTheDocument();
@@ -168,7 +177,7 @@ describe('SearchBar', () => {
     const searchInput = screen.getByPlaceholderText('Search activities... (min 2 characters)');
     fireEvent.change(searchInput, { target: { value: 'test' } });
 
-    jest.advanceTimersByTime(300);
+    advanceTimers(300);
 
     await waitFor(() => {
       expect(screen.getByText('Test Activity')).toBeInTheDocument();
@@ -197,7 +206,7 @@ describe('SearchBar', () => {
     const searchInput = screen.getByPlaceholderText('Search activities... (min 2 characters)');
     fireEvent.change(searchInput, { target: { value: 'test' } });
 
-    jest.advanceTimersByTime(300);
+    advanceTimers(300);
 
     await waitFor(() => {
       expect(screen.getByText('Test Window')).toBeInTheDocument();
@@ -218,16 +227,16 @@ describe('SearchBar', () => {
 
     // Type quickly
     fireEvent.change(searchInput, { target: { value: 't' } });
-    jest.advanceTimersByTime(100);
+    advanceTimers(100);
 
     fireEvent.change(searchInput, { target: { value: 'te' } });
-    jest.advanceTimersByTime(100);
+    advanceTimers(100);
 
     fireEvent.change(searchInput, { target: { value: 'tes' } });
-    jest.advanceTimersByTime(100);
+    advanceTimers(100);
 
     fireEvent.change(searchInput, { target: { value: 'test' } });
-    jest.advanceTimersByTime(300);
+    advanceTimers(300);
 
     // Wait for async operations to complete
     await waitFor(() => {

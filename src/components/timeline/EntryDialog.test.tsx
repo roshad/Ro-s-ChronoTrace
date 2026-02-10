@@ -1,5 +1,36 @@
+import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { EntryDialog } from './EntryDialog';
+import { api } from '../../services/api';
+
+jest.mock('../../services/api', () => ({
+  api: {
+    getCategories: jest.fn(),
+    createCategory: jest.fn(),
+    deleteCategory: jest.fn(),
+  },
+}));
+
+const mockGetCategories = api.getCategories as jest.MockedFunction<typeof api.getCategories>;
+const mockCreateCategory = api.createCategory as jest.MockedFunction<typeof api.createCategory>;
+const mockDeleteCategory = api.deleteCategory as jest.MockedFunction<typeof api.deleteCategory>;
+
+const renderWithQueryClient = (component: React.ReactElement) => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+  return render(
+    <QueryClientProvider client={queryClient}>
+      {component}
+    </QueryClientProvider>
+  );
+};
 
 describe('EntryDialog', () => {
   const mockStartTime = new Date('2026-01-28T09:00:00Z').getTime();
@@ -10,10 +41,16 @@ describe('EntryDialog', () => {
   beforeEach(() => {
     mockOnSubmit.mockClear();
     mockOnCancel.mockClear();
+    mockGetCategories.mockResolvedValue([]);
+    mockCreateCategory.mockImplementation(async (category) => ({
+      id: 1,
+      ...category,
+    }));
+    mockDeleteCategory.mockResolvedValue(undefined);
   });
 
   it('renders dialog with time range', () => {
-    render(
+    renderWithQueryClient(
       <EntryDialog
         startTime={mockStartTime}
         endTime={mockEndTime}
@@ -29,7 +66,7 @@ describe('EntryDialog', () => {
   });
 
   it('displays formatted time range', () => {
-    render(
+    renderWithQueryClient(
       <EntryDialog
         startTime={mockStartTime}
         endTime={mockEndTime}
@@ -44,7 +81,7 @@ describe('EntryDialog', () => {
   });
 
   it('displays duration', () => {
-    render(
+    renderWithQueryClient(
       <EntryDialog
         startTime={mockStartTime}
         endTime={mockEndTime}
@@ -61,7 +98,7 @@ describe('EntryDialog', () => {
   });
 
   it('calls onSubmit with correct data when form is submitted', () => {
-    render(
+    renderWithQueryClient(
       <EntryDialog
         startTime={mockStartTime}
         endTime={mockEndTime}
@@ -85,7 +122,7 @@ describe('EntryDialog', () => {
   });
 
   it('calls onCancel when cancel button is clicked', () => {
-    render(
+    renderWithQueryClient(
       <EntryDialog
         startTime={mockStartTime}
         endTime={mockEndTime}
@@ -102,7 +139,7 @@ describe('EntryDialog', () => {
   });
 
   it('allows color selection', () => {
-    render(
+    renderWithQueryClient(
       <EntryDialog
         startTime={mockStartTime}
         endTime={mockEndTime}
@@ -136,7 +173,7 @@ describe('EntryDialog', () => {
   });
 
   it('does not submit when label is empty', () => {
-    render(
+    renderWithQueryClient(
       <EntryDialog
         startTime={mockStartTime}
         endTime={mockEndTime}
@@ -152,7 +189,7 @@ describe('EntryDialog', () => {
   });
 
   it('trims label whitespace before submitting', () => {
-    render(
+    renderWithQueryClient(
       <EntryDialog
         startTime={mockStartTime}
         endTime={mockEndTime}
@@ -176,7 +213,7 @@ describe('EntryDialog', () => {
   });
 
   it('renders all color options', () => {
-    render(
+    renderWithQueryClient(
       <EntryDialog
         startTime={mockStartTime}
         endTime={mockEndTime}

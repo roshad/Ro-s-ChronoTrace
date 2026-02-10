@@ -440,6 +440,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "slow benchmark-style suite; run manually when needed"]
     fn test_full_performance_suite() {
         let temp_dir = TempDir::new().unwrap();
         let db_path = temp_dir.path().join("test_full_perf.db");

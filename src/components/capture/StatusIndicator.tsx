@@ -5,7 +5,7 @@ interface StatusIndicatorProps {
 }
 
 export const StatusIndicator: React.FC<StatusIndicatorProps> = ({ lastCaptureTime }) => {
-  const [isActive] = useState(true); // Capture is always active when app is running
+  const [isActive] = useState(true);
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -17,33 +17,10 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = ({ lastCaptureTim
   };
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        padding: '8px 12px',
-        backgroundColor: isActive ? '#e8f5e9' : '#ffebee',
-        borderRadius: '4px',
-        fontSize: '14px',
-      }}
-    >
-      <div
-        style={{
-          width: '8px',
-          height: '8px',
-          borderRadius: '50%',
-          backgroundColor: isActive ? '#4CAF50' : '#f44336',
-        }}
-      />
-      <span style={{ fontWeight: 'bold', color: isActive ? '#2e7d32' : '#c62828' }}>
-        {isActive ? 'Active' : 'Inactive'}
-      </span>
-      {lastCaptureTime && (
-        <span style={{ color: '#666', marginLeft: '8px' }}>
-          Last capture: {formatTime(lastCaptureTime)}
-        </span>
-      )}
+    <div className={`status-indicator ${isActive ? '' : 'inactive'}`}>
+      <span className="status-dot" />
+      <span>{isActive ? 'Active' : 'Inactive'}</span>
+      {lastCaptureTime && <span className="small muted">Last capture: {formatTime(lastCaptureTime)}</span>}
     </div>
   );
 };

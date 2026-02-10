@@ -52,6 +52,7 @@ pub fn init_database() -> Result<Connection, String> {
     Ok(conn)
 }
 
+#[allow(dead_code)]
 pub fn initialize_database(db_path: &std::path::Path) -> Result<(), String> {
     let conn = Connection::open(db_path).map_err(|e| format!("Failed to open database: {}", e))?;
 

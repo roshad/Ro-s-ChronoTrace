@@ -39,6 +39,44 @@ pub fn get_time_entries_impl(conn: &Connection, date: i64) -> AppResult<Vec<Time
     Ok(entries)
 }
 
+pub fn get_time_entries_by_range_impl(
+    conn: &Connection,
+    start_time: i64,
+    end_time: i64,
+) -> AppResult<Vec<TimeEntry>> {
+    if end_time <= start_time {
+        return Err("end_time must be greater than start_time".to_string());
+    }
+
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, start_time, end_time, label, color, category_id FROM time_entries
+         WHERE start_time < ? AND end_time > ?
+         ORDER BY start_time",
+        )
+        .map_err(|e| format!("Failed to prepare range query: {}", e))?;
+
+    let entry_iter = stmt
+        .query_map(params![end_time, start_time], |row| {
+            Ok(TimeEntry {
+                id: row.get(0)?,
+                start_time: row.get(1)?,
+                end_time: row.get(2)?,
+                label: row.get(3)?,
+                color: row.get(4)?,
+                category_id: row.get(5)?,
+            })
+        })
+        .map_err(|e| format!("Failed to query time entries by range: {}", e))?;
+
+    let mut entries = Vec::new();
+    for entry in entry_iter {
+        entries.push(entry.map_err(|e| format!("Failed to map row: {}", e))?);
+    }
+
+    Ok(entries)
+}
+
 pub fn create_time_entry_impl(conn: &Connection, entry: &TimeEntryInput) -> AppResult<TimeEntry> {
     if entry.end_time <= entry.start_time {
         return Err("end_time must be greater than start_time".to_string());

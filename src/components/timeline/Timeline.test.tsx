@@ -1,6 +1,32 @@
+import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Timeline } from './Timeline';
-import { TimeEntry } from '../../services/api';
+import { api, TimeEntry } from '../../services/api';
+
+jest.mock('../../services/api', () => ({
+  api: {
+    getCategories: jest.fn(),
+  },
+}));
+
+const mockGetCategories = api.getCategories as jest.MockedFunction<typeof api.getCategories>;
+
+const renderWithQueryClient = (component: React.ReactElement) => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+  return render(
+    <QueryClientProvider client={queryClient}>
+      {component}
+    </QueryClientProvider>
+  );
+};
 
 describe('Timeline', () => {
   const mockDate = new Date('2026-01-28T00:00:00Z');
@@ -21,8 +47,12 @@ describe('Timeline', () => {
     },
   ];
 
+  beforeEach(() => {
+    mockGetCategories.mockResolvedValue([]);
+  });
+
   it('renders timeline with time entries', () => {
-    render(<Timeline date={mockDate} timeEntries={mockTimeEntries} />);
+    renderWithQueryClient(<Timeline date={mockDate} timeEntries={mockTimeEntries} />);
 
     // Check if time entry labels are rendered
     expect(screen.getByText('Work')).toBeInTheDocument();
@@ -30,7 +60,7 @@ describe('Timeline', () => {
   });
 
   it('renders hour markers', () => {
-    render(<Timeline date={mockDate} timeEntries={mockTimeEntries} />);
+    renderWithQueryClient(<Timeline date={mockDate} timeEntries={mockTimeEntries} />);
 
     // Check if some hour markers are rendered
     expect(screen.getByText('0:00')).toBeInTheDocument();
@@ -40,7 +70,7 @@ describe('Timeline', () => {
 
   it('calls onHover when mouse moves over timeline', () => {
     const mockOnHover = jest.fn();
-    render(
+    renderWithQueryClient(
       <Timeline
         date={mockDate}
         timeEntries={mockTimeEntries}
@@ -61,7 +91,7 @@ describe('Timeline', () => {
 
   it('handles drag selection', () => {
     const mockOnDragSelect = jest.fn();
-    render(
+    renderWithQueryClient(
       <Timeline
         date={mockDate}
         timeEntries={mockTimeEntries}
@@ -92,7 +122,7 @@ describe('Timeline', () => {
 
   it('does not call onDragSelect for selections less than 1 minute', () => {
     const mockOnDragSelect = jest.fn();
-    render(
+    renderWithQueryClient(
       <Timeline
         date={mockDate}
         timeEntries={mockTimeEntries}
@@ -109,7 +139,7 @@ describe('Timeline', () => {
       });
 
       // Mouse move (very small distance, less than 1 minute)
-      // Timeline width is 1200px for 24 hours (86400000ms)
+      // Timeline is 24 hours wide at default zoom.
       // 1 minute = 60000ms = (60000 / 86400000) * 1200 = 0.833px
       // So moving less than 1 pixel should be less than 1 minute
       fireEvent.mouseMove(svg, {
@@ -125,7 +155,7 @@ describe('Timeline', () => {
   });
 
   it('renders empty timeline when no time entries', () => {
-    render(<Timeline date={mockDate} timeEntries={[]} />);
+    renderWithQueryClient(<Timeline date={mockDate} timeEntries={[]} />);
 
     // Check that no time entry labels are rendered
     expect(screen.queryByText('Work')).not.toBeInTheDocument();
@@ -134,7 +164,7 @@ describe('Timeline', () => {
 
   it('clears drag selection on mouse leave', () => {
     const mockOnDragSelect = jest.fn();
-    render(
+    renderWithQueryClient(
       <Timeline
         date={mockDate}
         timeEntries={mockTimeEntries}
@@ -158,5 +188,31 @@ describe('Timeline', () => {
 
       expect(mockOnDragSelect).not.toHaveBeenCalled();
     }
+  });
+
+  it('renders zoom controls with default 24h view', () => {
+    renderWithQueryClient(<Timeline date={mockDate} timeEntries={mockTimeEntries} />);
+
+    expect(screen.getByText('Timeline Zoom')).toBeInTheDocument();
+    expect(screen.getByText('24h view')).toBeInTheDocument();
+    expect(screen.getByLabelText('Timeline zoom hours')).toBeInTheDocument();
+  });
+
+  it('zooms with ctrl+wheel', () => {
+    renderWithQueryClient(<Timeline date={mockDate} timeEntries={mockTimeEntries} />);
+
+    const scrollContainer = screen.getByTestId('timeline-scroll-container');
+    fireEvent.wheel(scrollContainer, { deltaY: -100, ctrlKey: true, clientX: 200 });
+
+    expect(screen.getByText('23h view')).toBeInTheDocument();
+  });
+
+  it('keeps normal wheel as pan and not zoom', () => {
+    renderWithQueryClient(<Timeline date={mockDate} timeEntries={mockTimeEntries} />);
+
+    const scrollContainer = screen.getByTestId('timeline-scroll-container');
+    fireEvent.wheel(scrollContainer, { deltaY: -100, clientX: 200 });
+
+    expect(screen.getByText('24h view')).toBeInTheDocument();
   });
 });

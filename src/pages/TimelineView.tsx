@@ -227,11 +227,11 @@ export const TimelineView: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <h1 style={{ margin: 0 }}>Digital Diary</h1>
+    <div className="app-shell">
+      <div className="app-header">
+        <h1 className="app-title">Digital Diary</h1>
 
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: '16px', alignItems: 'center' }}>
+        <div className="app-toolbar">
           <StatusIndicator />
 
           <ExportButton />
@@ -246,7 +246,7 @@ export const TimelineView: React.FC = () => {
       </div>
 
       {isLoading ? (
-        <div style={{ textAlign: 'center', padding: '40px' }}>Loading...</div>
+        <div className="panel" style={{ textAlign: 'center', padding: '40px' }}>Loading...</div>
       ) : (
         <>
           <TimerInput onStart={handleStartTimer} onStop={handleStopTimer} />
@@ -267,9 +267,9 @@ export const TimelineView: React.FC = () => {
             />
           )}
 
-          <div style={{ marginTop: '20px', padding: '16px', backgroundColor: '#f5f5f5', borderRadius: '8px' }}>
-            <h3 style={{ marginTop: 0 }}>Instructions</h3>
-            <ul style={{ margin: 0, paddingLeft: '20px' }}>
+          <div className="panel panel-soft hint-card">
+            <h3>Instructions</h3>
+            <ul>
               <li>Click and drag on the timeline to create a new time entry</li>
               <li>Click on an existing entry to edit or delete it</li>
               <li>Hover over the timeline to see screenshot previews</li>
@@ -277,7 +277,7 @@ export const TimelineView: React.FC = () => {
             </ul>
           </div>
 
-          <div style={{ marginTop: '20px' }}>
+          <div>
             <TodaySearchBar date={selectedDate} />
           </div>
         </>

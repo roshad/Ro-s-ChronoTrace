@@ -59,6 +59,7 @@ pub struct IdlePeriod {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[allow(dead_code)]
 pub struct IdlePeriodResolution {
     pub id: i64,
     pub resolution: String,
@@ -75,6 +76,7 @@ pub struct SearchResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[allow(dead_code)]
 pub struct SearchQuery {
     pub query: String,
     pub limit: Option<i32>,
@@ -88,6 +90,7 @@ pub struct ScreenshotInfo {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[allow(dead_code)]
 pub struct ExportOptions {
     pub start_date: Option<i64>,
     pub end_date: Option<i64>,

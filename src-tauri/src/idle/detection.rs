@@ -69,6 +69,7 @@ pub fn start_idle_detection() {
 /// Tauri command: Resolve an idle period
 #[tauri::command]
 #[specta::specta]
+#[allow(dead_code)]
 pub async fn resolve_idle_period(
     resolution: crate::types::IdlePeriodResolution,
 ) -> Result<crate::types::IdlePeriod, String> {

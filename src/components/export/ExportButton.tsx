@@ -8,8 +8,6 @@ export const ExportButton: React.FC = () => {
     try {
       setIsExporting(true);
       const data = await api.exportData();
-
-      // Create JSON blob and download
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -19,7 +17,6 @@ export const ExportButton: React.FC = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-
       alert('Data exported successfully!');
     } catch (error) {
       console.error('Export failed:', error);
@@ -30,20 +27,7 @@ export const ExportButton: React.FC = () => {
   };
 
   return (
-    <button
-      onClick={handleExport}
-      disabled={isExporting}
-      style={{
-        padding: '8px 16px',
-        fontSize: '14px',
-        border: 'none',
-        borderRadius: '4px',
-        backgroundColor: isExporting ? '#ccc' : '#4CAF50',
-        color: 'white',
-        cursor: isExporting ? 'not-allowed' : 'pointer',
-        fontWeight: 'bold',
-      }}
-    >
+    <button onClick={handleExport} disabled={isExporting} className="btn btn-primary btn-sm">
       {isExporting ? 'Exporting...' : 'Export Data (JSON)'}
     </button>
   );

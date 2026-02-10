@@ -75,6 +75,9 @@ export const api = {
   getTimeEntries: (date: number): Promise<TimeEntry[]> =>
     invoke('get_time_entries', { date }),
 
+  getTimeEntriesByRange: (startTime: number, endTime: number): Promise<TimeEntry[]> =>
+    invoke('get_time_entries_by_range', { startTime, endTime }),
+
   createTimeEntry: (entry: TimeEntryInput): Promise<TimeEntry> =>
     invoke('create_time_entry', { entry }),
 

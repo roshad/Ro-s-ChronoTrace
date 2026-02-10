@@ -104,6 +104,7 @@ pub fn export_data_impl(conn: &Connection) -> Result<crate::types::ExportData, S
 }
 
 /// Export time entries to CSV
+#[allow(dead_code)]
 pub fn export_to_csv_impl(
     conn: &Connection,
     export_path: &Path,

@@ -3,11 +3,13 @@ use rusqlite::{Connection, OptionalExtension};
 use std::path::Path;
 
 /// Get screenshot directory path
+#[allow(dead_code)]
 pub fn get_screenshot_path(base_path: &Path) -> std::path::PathBuf {
     base_path.join("screenshots")
 }
 
 /// Save screenshot to file
+#[allow(dead_code)]
 pub fn save_screenshot(
     base_path: &Path,
     timestamp: i64,
@@ -83,6 +85,7 @@ pub fn get_screenshot_near_time(
 }
 
 /// Get all screenshots for a specific day
+#[allow(dead_code)]
 pub fn get_screenshots_for_day(conn: &Connection, day_id: i32) -> AppResult<Vec<(i64, String)>> {
     let mut stmt = conn
         .prepare(

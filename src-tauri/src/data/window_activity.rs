@@ -3,6 +3,7 @@ use crate::types::WindowActivity;
 use rusqlite::{params, Connection};
 
 /// Insert a single window activity record
+#[allow(dead_code)]
 pub fn insert_window_activity(conn: &Connection, activity: &WindowActivity) -> AppResult<()> {
     conn.execute(
         "INSERT INTO window_activity (timestamp, window_title, process_name) VALUES (?, ?, ?)",
@@ -45,6 +46,7 @@ pub fn insert_window_activities_batch(
 }
 
 /// Get window activities for a specific date range
+#[allow(dead_code)]
 pub fn get_window_activities(
     conn: &Connection,
     start_time: i64,

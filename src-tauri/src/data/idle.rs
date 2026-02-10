@@ -14,6 +14,7 @@ pub fn insert_idle_period(conn: &Connection, start_time: i64, end_time: i64) -> 
 }
 
 /// Update idle period resolution
+#[allow(dead_code)]
 pub fn update_idle_period_resolution(
     conn: &Connection,
     id: i64,
@@ -29,6 +30,7 @@ pub fn update_idle_period_resolution(
 }
 
 /// Get idle period by ID
+#[allow(dead_code)]
 pub fn get_idle_period(conn: &Connection, id: i64) -> AppResult<IdlePeriod> {
     let mut stmt = conn
         .prepare("SELECT id, start_time, end_time, resolution FROM idle_periods WHERE id = ?1")
@@ -84,6 +86,7 @@ pub fn get_idle_periods_for_day(
 /// - "discarded": Mark as discarded, keep as gap
 /// - "merged": Merge with previous time entry (extend end_time)
 /// - "labeled": Create new time entry with provided label
+#[allow(dead_code)]
 pub fn resolve_idle_period_with_action(
     conn: &Connection,
     resolution: &IdlePeriodResolution,

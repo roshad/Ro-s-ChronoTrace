@@ -46,6 +46,14 @@ pub async fn get_time_entries(date: i64) -> AppResult<Vec<crate::types::TimeEntr
 }
 
 #[tauri::command]
+pub async fn get_time_entries_by_range(
+    start_time: i64,
+    end_time: i64,
+) -> AppResult<Vec<crate::types::TimeEntry>> {
+    with_db(|conn| time_entries::get_time_entries_by_range_impl(conn, start_time, end_time))
+}
+
+#[tauri::command]
 pub async fn create_time_entry(
     entry: crate::types::TimeEntryInput,
 ) -> AppResult<crate::types::TimeEntry> {

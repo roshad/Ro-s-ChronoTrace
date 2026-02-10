@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api, TimeEntry } from '../../services/api';
 
@@ -19,9 +19,16 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
   onDragSelect,
   onEntryClick,
 }) => {
-  const width = 1200;
+  const HOURS_IN_DAY = 24;
+  const MIN_VISIBLE_HOURS = 4;
+  const MAX_VISIBLE_HOURS = 24;
   const height = 100;
   const dayStart = new Date(date).setHours(0, 0, 0, 0);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const pendingZoomAnchorRef = useRef<{ ratio: number; viewportOffset: number } | null>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+  const [visibleHours, setVisibleHours] = useState(MAX_VISIBLE_HOURS);
 
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
@@ -34,15 +41,47 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
     return map;
   }, [categories]);
 
+  const timelineWidth = useMemo(() => {
+    if (containerWidth <= 0) {
+      return 1200;
+    }
+    return (containerWidth * HOURS_IN_DAY) / visibleHours;
+  }, [containerWidth, visibleHours]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const measure = () => setContainerWidth(container.clientWidth);
+    measure();
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', measure);
+      return () => {
+        window.removeEventListener('resize', measure);
+      };
+    }
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(container);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
   // Convert time to x position
   const timeToX = (timestamp: number) => {
     const offset = timestamp - dayStart;
-    return (offset / 86400000) * width;
+    return (offset / 86400000) * timelineWidth;
   };
 
   // Convert x position to timestamp
   const xToTime = (x: number) => {
-    return Math.round(dayStart + (x / width) * 86400000);
+    const clampedX = Math.max(0, Math.min(x, timelineWidth));
+    return Math.round(dayStart + (clampedX / timelineWidth) * 86400000);
   };
 
   const [dragStart, setDragStart] = React.useState<number | null>(null);
@@ -92,11 +131,78 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
     }
   };
 
+  const handleZoomChange = (nextVisibleHours: number) => {
+    const boundedHours = Math.max(MIN_VISIBLE_HOURS, Math.min(nextVisibleHours, MAX_VISIBLE_HOURS));
+    const scrollContainer = scrollContainerRef.current;
+    if (scrollContainer && timelineWidth > 0 && boundedHours !== visibleHours) {
+      const viewportOffset = scrollContainer.clientWidth / 2;
+      const anchorX = scrollContainer.scrollLeft + viewportOffset;
+      pendingZoomAnchorRef.current = {
+        ratio: anchorX / timelineWidth,
+        viewportOffset,
+      };
+    }
+    setVisibleHours(boundedHours);
+  };
+
+  const handleScrollWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) {
+      return;
+    }
+
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      const rect = e.currentTarget.getBoundingClientRect();
+      const viewportOffset = Math.max(0, Math.min(e.clientX - rect.left, scrollContainer.clientWidth));
+      const anchorX = scrollContainer.scrollLeft + viewportOffset;
+      const zoomDirection = e.deltaY > 0 ? 1 : -1;
+
+      setVisibleHours((current) => {
+        const next = Math.max(MIN_VISIBLE_HOURS, Math.min(current + zoomDirection, MAX_VISIBLE_HOURS));
+        if (next === current || timelineWidth <= 0) {
+          return current;
+        }
+
+        pendingZoomAnchorRef.current = {
+          ratio: anchorX / timelineWidth,
+          viewportOffset,
+        };
+        return next;
+      });
+      return;
+    }
+
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      e.preventDefault();
+      scrollContainer.scrollLeft += e.deltaY;
+    }
+  };
+
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    const anchor = pendingZoomAnchorRef.current;
+    if (!scrollContainer || !anchor) {
+      return;
+    }
+
+    const maxScrollLeft = Math.max(0, timelineWidth - scrollContainer.clientWidth);
+    const targetScrollLeft = Math.max(
+      0,
+      Math.min(
+        maxScrollLeft,
+        (anchor.ratio * timelineWidth) - anchor.viewportOffset
+      )
+    );
+    scrollContainer.scrollLeft = targetScrollLeft;
+    pendingZoomAnchorRef.current = null;
+  }, [timelineWidth]);
+
   // Render time blocks
   const timeBlocks = useMemo(() => {
     return timeEntries.map((entry) => {
       const x = timeToX(entry.start_time);
-      const blockWidth = timeToX(entry.end_time) - x;
+      const blockWidth = Math.max(timeToX(entry.end_time) - x, 1);
       const color =
         (entry.category_id && categoryMap.get(entry.category_id)) ||
         entry.color ||
@@ -130,14 +236,14 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
             fill="white"
             fontSize={12}
             fontWeight="bold"
-            style={{ pointerEvents: 'none' }}
+            style={{ pointerEvents: 'none', display: blockWidth >= 36 ? 'block' : 'none' }}
           >
             {entry.label}
           </text>
         </g>
       );
     });
-  }, [timeEntries, dayStart, onEntryClick, categoryMap]);
+  }, [timeEntries, onEntryClick, categoryMap, timelineWidth]);
 
   // Render drag selection
   const dragSelection = useMemo(() => {
@@ -146,7 +252,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
     const start = Math.min(dragStart, dragEnd);
     const end = Math.max(dragStart, dragEnd);
     const x = timeToX(start);
-    const blockWidth = timeToX(end) - x;
+    const blockWidth = Math.max(timeToX(end) - x, 1);
 
     return (
       <rect
@@ -161,54 +267,86 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
         rx={4}
       />
     );
-  }, [dragStart, dragEnd, dayStart]);
+  }, [dragStart, dragEnd, timelineWidth]);
 
   return (
-    <div style={{ padding: '20px' }}>
-      <svg
-        width={width}
-        height={height}
-        style={{ border: '1px solid #ccc', cursor: 'crosshair' }}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
-      >
-        {/* Background */}
-        <rect width={width} height={height} fill="#f5f5f5" />
+    <div
+      style={{
+        width: '100vw',
+        marginLeft: 'calc(50% - 50vw)',
+        marginRight: 'calc(50% - 50vw)',
+        paddingTop: '12px',
+      }}
+    >
+      <div className="timeline-zoom-row">
+        <strong style={{ minWidth: 'fit-content' }}>Timeline Zoom</strong>
+        <input
+          type="range"
+          min={MIN_VISIBLE_HOURS}
+          max={MAX_VISIBLE_HOURS}
+          step={1}
+          value={visibleHours}
+          onChange={(e) => handleZoomChange(Number(e.target.value))}
+          className="zoom-slider"
+          aria-label="Timeline zoom hours"
+        />
+        <span className="small muted">{visibleHours}h view</span>
+      </div>
 
-        {/* Hour markers */}
-        {Array.from({ length: 25 }, (_, i) => {
-          const x = (i / 24) * width;
-          return (
-            <g key={i}>
-              <line
-                x1={x}
-                y1={0}
-                x2={x}
-                y2={height}
-                stroke="#ddd"
-                strokeWidth={1}
-              />
-              <text
-                x={x}
-                y={15}
-                textAnchor="middle"
-                fontSize={10}
-                fill="#666"
-              >
-                {i}:00
-              </text>
-            </g>
-          );
-        })}
+      <div ref={containerRef} style={{ width: '100%' }}>
+        <div
+          ref={scrollContainerRef}
+          data-testid="timeline-scroll-container"
+          className="timeline-scroll-container"
+          onWheel={handleScrollWheel}
+        >
+          <svg
+            width={timelineWidth}
+            height={height}
+            style={{ cursor: 'crosshair' }}
+            className="timeline-svg"
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
+          >
+            {/* Background */}
+            <rect width={timelineWidth} height={height} fill="var(--surface-soft)" />
 
-        {/* Time blocks */}
-        {timeBlocks}
+            {/* Hour markers */}
+            {Array.from({ length: HOURS_IN_DAY + 1 }, (_, i) => {
+              const x = (i / HOURS_IN_DAY) * timelineWidth;
+              return (
+                <g key={i}>
+                  <line
+                    x1={x}
+                    y1={0}
+                    x2={x}
+                    y2={height}
+                    stroke="var(--border)"
+                    strokeWidth={1}
+                  />
+                  <text
+                    x={x}
+                    y={15}
+                    textAnchor="middle"
+                    fontSize={10}
+                    fill="var(--text-muted)"
+                  >
+                    {i}:00
+                  </text>
+                </g>
+              );
+            })}
 
-        {/* Drag selection */}
-        {dragSelection}
-      </svg>
+            {/* Time blocks */}
+            {timeBlocks}
+
+            {/* Drag selection */}
+            {dragSelection}
+          </svg>
+        </div>
+      </div>
     </div>
   );
 });

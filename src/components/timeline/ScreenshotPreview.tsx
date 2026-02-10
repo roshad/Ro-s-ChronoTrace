@@ -22,19 +22,8 @@ export const ScreenshotPreview: React.FC<ScreenshotPreviewProps> = ({
 
   if (!filePath && !dataUrl) {
     return (
-      <div
-        style={{
-          marginTop: '20px',
-          padding: '16px',
-          border: '1px solid #ccc',
-          borderRadius: '8px',
-          backgroundColor: '#f9f9f9',
-          textAlign: 'center',
-        }}
-      >
-        <div style={{ color: '#666', fontSize: '14px' }}>
-          No screenshot available for this time
-        </div>
+      <div className="panel preview-card">
+        <div className="muted small">No screenshot available for this time</div>
       </div>
     );
   }
@@ -42,33 +31,10 @@ export const ScreenshotPreview: React.FC<ScreenshotPreviewProps> = ({
   const imageSrc = dataUrl || (filePath ? `asset://localhost/${filePath}` : undefined);
 
   return (
-    <div
-      style={{
-        marginTop: '20px',
-        padding: '16px',
-        border: '1px solid #ccc',
-        borderRadius: '8px',
-        backgroundColor: '#f9f9f9',
-      }}
-    >
-      <h3 style={{ marginTop: 0, marginBottom: '12px' }}>Screenshot Preview</h3>
-      {timestamp && (
-        <div style={{ color: '#666', fontSize: '14px', marginBottom: '12px' }}>
-          Captured at: {formatTime(timestamp)}
-        </div>
-      )}
-      <div
-        style={{
-          border: '1px solid #ddd',
-          borderRadius: '4px',
-          overflow: 'hidden',
-          backgroundColor: '#000',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: '200px',
-        }}
-      >
+    <div className="panel preview-card">
+      <h3 style={{ margin: '0 0 8px 0' }}>Screenshot Preview</h3>
+      {timestamp && <div className="muted small">Captured at: {formatTime(timestamp)}</div>}
+      <div className="preview-frame">
         <img
           src={imageSrc}
           alt="Screenshot"
@@ -81,14 +47,12 @@ export const ScreenshotPreview: React.FC<ScreenshotPreviewProps> = ({
             e.currentTarget.style.display = 'none';
             const parent = e.currentTarget.parentElement;
             if (parent) {
-              parent.innerHTML = '<div style="color: #fff; padding: 20px;">Failed to load screenshot</div>';
+              parent.innerHTML = '<div style="color: #ffffff; padding: 20px;">Failed to load screenshot</div>';
             }
           }}
         />
       </div>
-      <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
-        {filePath}
-      </div>
+      {filePath && <div className="small muted" style={{ marginTop: 8 }}>{filePath}</div>}
     </div>
   );
 };

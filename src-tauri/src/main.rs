@@ -34,6 +34,7 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             data::get_time_entries,
+            data::get_time_entries_by_range,
             data::create_time_entry,
             data::update_time_entry,
             data::delete_time_entry,
