@@ -17,10 +17,10 @@ export const ExportButton: React.FC = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      alert('Data exported successfully!');
+      alert('导出成功！');
     } catch (error) {
       console.error('Export failed:', error);
-      alert('Failed to export data. Please try again.');
+      alert('导出失败，请稍后重试。');
     } finally {
       setIsExporting(false);
     }
@@ -28,7 +28,7 @@ export const ExportButton: React.FC = () => {
 
   return (
     <button onClick={handleExport} disabled={isExporting} className="btn btn-primary btn-sm">
-      {isExporting ? 'Exporting...' : 'Export Data (JSON)'}
+      {isExporting ? '导出中...' : '导出数据（JSON）'}
     </button>
   );
 };

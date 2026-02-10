@@ -279,7 +279,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
       }}
     >
       <div className="timeline-zoom-row">
-        <strong style={{ minWidth: 'fit-content' }}>Timeline Zoom</strong>
+        <strong style={{ minWidth: 'fit-content' }}>时间轴缩放</strong>
         <input
           type="range"
           min={MIN_VISIBLE_HOURS}
@@ -288,9 +288,9 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
           value={visibleHours}
           onChange={(e) => handleZoomChange(Number(e.target.value))}
           className="zoom-slider"
-          aria-label="Timeline zoom hours"
+          aria-label="时间轴缩放小时数"
         />
-        <span className="small muted">{visibleHours}h view</span>
+        <span className="small muted">当前视野：{visibleHours} 小时</span>
       </div>
 
       <div ref={containerRef} style={{ width: '100%' }}>

@@ -18,6 +18,7 @@ export const TimelineView: React.FC = () => {
   const [dialogRange, setDialogRange] = useState<{ start: number; end: number } | null>(null);
   const [hoveredScreenshot, setHoveredScreenshot] = useState<{ filePath?: string; dataUrl?: string; timestamp?: number } | null>(null);
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
   const hoverRequestIdRef = useRef(0);
   const hoverDebounceTimerRef = useRef<number | null>(null);
 
@@ -42,7 +43,7 @@ export const TimelineView: React.FC = () => {
     },
     onError: (error) => {
       console.error('Failed to create time entry:', error);
-      alert(`Failed to create time entry: ${error}`);
+      alert(`创建时间条目失败：${error}`);
     },
   });
 
@@ -56,7 +57,7 @@ export const TimelineView: React.FC = () => {
     },
     onError: (error) => {
       console.error('Failed to update time entry:', error);
-      alert(`Failed to update time entry: ${error}`);
+      alert(`更新条目失败：${error}`);
     },
   });
 
@@ -81,7 +82,7 @@ export const TimelineView: React.FC = () => {
     },
     onError: (error) => {
       console.error('Failed to delete time entry:', error);
-      alert(`Failed to delete time entry: ${error}`);
+      alert(`删除条目失败：${error}`);
     },
   });
 
@@ -109,7 +110,7 @@ export const TimelineView: React.FC = () => {
 
   const handleRestartEntry = async (entry: TimeEntry) => {
     if (activeTimer) {
-      alert('Please stop the current timer before restarting another entry.');
+      alert('请先停止当前计时，再重新开始其他条目。');
       return;
     }
 
@@ -130,7 +131,7 @@ export const TimelineView: React.FC = () => {
       setEditingEntry(null);
     } catch (error) {
       console.error('Failed to restart entry:', error);
-      alert(`Failed to restart entry: ${error}`);
+      alert(`重新开始条目失败：${error}`);
     }
   };
 
@@ -229,12 +230,22 @@ export const TimelineView: React.FC = () => {
   return (
     <div className="app-shell">
       <div className="app-header">
-        <h1 className="app-title">Digital Diary</h1>
+        <h1 className="app-title">数字日志</h1>
 
         <div className="app-toolbar">
           <StatusIndicator />
 
           <ExportButton />
+
+          <button
+            type="button"
+            onClick={() => setShowHelp(true)}
+            className="btn btn-secondary btn-sm"
+            aria-label="打开操作帮助"
+            title="操作帮助"
+          >
+            ? 帮助
+          </button>
 
           <Navigation
             selectedDate={selectedDate}
@@ -246,7 +257,7 @@ export const TimelineView: React.FC = () => {
       </div>
 
       {isLoading ? (
-        <div className="panel" style={{ textAlign: 'center', padding: '40px' }}>Loading...</div>
+        <div className="panel" style={{ textAlign: 'center', padding: '40px' }}>加载中...</div>
       ) : (
         <>
           <TimerInput onStart={handleStartTimer} onStop={handleStopTimer} />
@@ -266,16 +277,6 @@ export const TimelineView: React.FC = () => {
               timestamp={hoveredScreenshot.timestamp}
             />
           )}
-
-          <div className="panel panel-soft hint-card">
-            <h3>Instructions</h3>
-            <ul>
-              <li>Click and drag on the timeline to create a new time entry</li>
-              <li>Click on an existing entry to edit or delete it</li>
-              <li>Hover over the timeline to see screenshot previews</li>
-              <li>Use navigation buttons to view different days</li>
-            </ul>
-          </div>
 
           <div>
             <TodaySearchBar date={selectedDate} />
@@ -303,6 +304,44 @@ export const TimelineView: React.FC = () => {
           onRestart={handleRestartEntry}
           onCancel={() => setEditingEntry(null)}
         />
+      )}
+
+      {showHelp && (
+        <div className="dialog-overlay" onClick={() => setShowHelp(false)}>
+          <div className="dialog-card" onClick={(e) => e.stopPropagation()}>
+            <h2 className="dialog-title">操作帮助</h2>
+            <div className="stack-col">
+              <div>
+                <strong>时间轴操作</strong>
+                <ul>
+                  <li>在时间轴上按住鼠标拖拽，可快速创建条目</li>
+                  <li>点击已有条目，可编辑、删除或重新开始计时</li>
+                  <li>鼠标悬停时间轴，可查看对应时间截图</li>
+                </ul>
+              </div>
+              <div>
+                <strong>缩放与滚动</strong>
+                <ul>
+                  <li>`Ctrl` / `Cmd` + 鼠标滚轮：缩放视野（4-24 小时）</li>
+                  <li>鼠标滚轮：横向滚动时间轴</li>
+                  <li>也可拖动“时间轴缩放”滑块精细调整</li>
+                </ul>
+              </div>
+              <div>
+                <strong>快捷操作</strong>
+                <ul>
+                  <li>在计时输入框按 `Enter`：开始或停止计时</li>
+                  <li>使用“前一天 / 今天 / 后一天”快速切换日期</li>
+                </ul>
+              </div>
+            </div>
+            <div className="dialog-actions" style={{ marginTop: 16 }}>
+              <button type="button" className="btn btn-primary" onClick={() => setShowHelp(false)}>
+                我知道了
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

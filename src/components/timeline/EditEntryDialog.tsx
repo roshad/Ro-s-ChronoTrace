@@ -44,7 +44,7 @@ export const EditEntryDialog: React.FC<EditEntryDialogProps> = ({
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString('en-US', {
+    return date.toLocaleTimeString('zh-CN', {
       hour: '2-digit',
       minute: '2-digit',
       hour12: false,
@@ -55,7 +55,7 @@ export const EditEntryDialog: React.FC<EditEntryDialogProps> = ({
     const durationMs = entry.end_time - entry.start_time;
     const hours = Math.floor(durationMs / 3600000);
     const minutes = Math.floor((durationMs % 3600000) / 60000);
-    return `${hours}h ${minutes}m`;
+    return `${hours}小时 ${minutes}分钟`;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -66,11 +66,11 @@ export const EditEntryDialog: React.FC<EditEntryDialogProps> = ({
     const parsedEndTime = parseTimeInput(endTimeInput, entry.end_time);
 
     if (!parsedStartTime || !parsedEndTime) {
-      alert('Invalid time format. Please use HH:mm.');
+      alert('时间格式无效，请使用 HH:mm。');
       return;
     }
     if (parsedEndTime <= parsedStartTime) {
-      alert('End time must be after start time.');
+      alert('结束时间必须晚于开始时间。');
       return;
     }
 
@@ -86,34 +86,34 @@ export const EditEntryDialog: React.FC<EditEntryDialogProps> = ({
   return (
     <div className="dialog-overlay">
       <div className="dialog-card">
-        <h2 className="dialog-title">Edit Time Entry</h2>
+        <h2 className="dialog-title">编辑时间条目</h2>
 
         {!showDeleteConfirm ? (
           <form onSubmit={handleSubmit}>
             <div className="field">
-              <label className="field-label">Time Range</label>
+              <label className="field-label">时间范围</label>
               <div className="toolbar-row">
                 <input type="time" value={startTimeInput} onChange={(e) => setStartTimeInput(e.target.value)} className="input" />
                 <span>-</span>
                 <input type="time" value={endTimeInput} onChange={(e) => setEndTimeInput(e.target.value)} className="input" />
               </div>
               <div className="field-help">
-                Current: {formatTime(entry.start_time)} - {formatTime(entry.end_time)} ({getDuration()})
+                当前：{formatTime(entry.start_time)} - {formatTime(entry.end_time)} ({getDuration()})
               </div>
             </div>
 
             <div className="field">
-              <label className="field-label">Category</label>
+              <label className="field-label">分类</label>
               <CategorySelector selectedCategoryId={categoryId} onSelect={setCategoryId} />
             </div>
 
             <div className="field">
-              <label className="field-label">Label *</label>
+              <label className="field-label">标签 *</label>
               <input
                 type="text"
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
-                placeholder="What were you working on?"
+                placeholder="你刚刚在做什么？"
                 autoFocus
                 required
                 className="input"
@@ -121,7 +121,7 @@ export const EditEntryDialog: React.FC<EditEntryDialogProps> = ({
             </div>
 
             <div className="field">
-              <label className="field-label">Color</label>
+              <label className="field-label">颜色</label>
               <div className="toolbar-row">
                 {['#0d9488', '#14b8a6', '#f97316', '#16a34a', '#6366f1', '#dc2626'].map((c) => (
                   <button
@@ -144,31 +144,31 @@ export const EditEntryDialog: React.FC<EditEntryDialogProps> = ({
             <div className="dialog-actions" style={{ justifyContent: 'space-between' }}>
               <div className="toolbar-row">
                 <button type="button" onClick={() => setShowDeleteConfirm(true)} className="btn btn-ghost">
-                  Delete
+                  删除
                 </button>
                 <button type="button" onClick={() => onRestart(entry)} className="btn btn-secondary">
-                  Restart
+                  重新开始
                 </button>
               </div>
               <div className="toolbar-row">
                 <button type="button" onClick={onCancel} className="btn btn-secondary">
-                  Cancel
+                  取消
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  Save Changes
+                  保存修改
                 </button>
               </div>
             </div>
           </form>
         ) : (
           <div>
-            <p style={{ marginBottom: '24px' }}>Are you sure you want to delete this time entry?</p>
+            <p style={{ marginBottom: '24px' }}>确认删除该时间条目吗？</p>
             <div className="dialog-actions">
               <button type="button" onClick={() => setShowDeleteConfirm(false)} className="btn btn-secondary">
-                Cancel
+                取消
               </button>
               <button type="button" onClick={() => onDelete(entry.id)} className="btn btn-danger">
-                Delete
+                删除
               </button>
             </div>
           </div>

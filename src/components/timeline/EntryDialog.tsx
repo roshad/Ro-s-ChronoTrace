@@ -21,7 +21,7 @@ export const EntryDialog: React.FC<EntryDialogProps> = ({
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString('en-US', {
+    return date.toLocaleTimeString('zh-CN', {
       hour: '2-digit',
       minute: '2-digit',
       hour12: false,
@@ -32,7 +32,7 @@ export const EntryDialog: React.FC<EntryDialogProps> = ({
     const durationMs = endTime - startTime;
     const hours = Math.floor(durationMs / 3600000);
     const minutes = Math.floor((durationMs % 3600000) / 60000);
-    return `${hours}h ${minutes}m`;
+    return `${hours}小时 ${minutes}分钟`;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -52,28 +52,28 @@ export const EntryDialog: React.FC<EntryDialogProps> = ({
   return (
     <div className="dialog-overlay">
       <div className="dialog-card">
-        <h2 className="dialog-title">Create Time Entry</h2>
+        <h2 className="dialog-title">创建时间条目</h2>
 
         <form onSubmit={handleSubmit}>
           <div className="field">
-            <label className="field-label">Time Range</label>
+            <label className="field-label">时间范围</label>
             <div className="mono-time">
               {formatTime(startTime)} - {formatTime(endTime)} ({getDuration()})
             </div>
           </div>
 
           <div className="field">
-            <label className="field-label">Category</label>
+            <label className="field-label">分类</label>
             <CategorySelector selectedCategoryId={categoryId} onSelect={setCategoryId} />
           </div>
 
           <div className="field">
-            <label className="field-label">Label *</label>
+            <label className="field-label">标签 *</label>
             <input
               type="text"
               value={label}
               onChange={(e) => setLabel(e.target.value)}
-              placeholder="What were you working on?"
+              placeholder="你刚刚在做什么？"
               autoFocus
               required
               className="input"
@@ -81,7 +81,7 @@ export const EntryDialog: React.FC<EntryDialogProps> = ({
           </div>
 
           <div className="field">
-            <label className="field-label">Color</label>
+            <label className="field-label">颜色</label>
             <div className="toolbar-row">
               {['#4CAF50', '#2196F3', '#FF9800', '#F44336', '#9C27B0', '#607D8B'].map((c) => (
                 <button
@@ -103,10 +103,10 @@ export const EntryDialog: React.FC<EntryDialogProps> = ({
 
           <div className="dialog-actions">
             <button type="button" onClick={onCancel} className="btn btn-secondary">
-              Cancel
+              取消
             </button>
             <button type="submit" className="btn btn-primary">
-              Create Entry
+              创建条目
             </button>
           </div>
         </form>

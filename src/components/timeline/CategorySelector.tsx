@@ -48,7 +48,7 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
             : undefined
         }
       >
-        {selectedCategory ? selectedCategory.name : 'Category'}
+        {selectedCategory ? selectedCategory.name : '分类'}
       </button>
 
       {showDropdown && (
@@ -82,21 +82,21 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
                   setShowDropdown(false);
                 }}
               >
-                No category
+                不分类
               </button>
               <hr style={{ margin: '8px 0', border: 0, borderTop: '1px solid var(--border)' }} />
             </div>
           )}
 
           {!showAddForm ? (
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowAddForm(true)}>
-              + Create new category
-            </button>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowAddForm(true)}>
+               + 新建分类
+              </button>
           ) : (
             <div className="stack-col">
               <input
                 type="text"
-                placeholder="Category name"
+                placeholder="分类名称"
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
                 autoFocus
@@ -116,10 +116,10 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
                   className="btn btn-primary btn-sm"
                   style={{ flex: 1 }}
                 >
-                  Add
+                  添加
                 </button>
                 <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowAddForm(false)}>
-                  Cancel
+                  取消
                 </button>
               </div>
             </div>

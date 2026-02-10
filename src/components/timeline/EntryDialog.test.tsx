@@ -59,10 +59,10 @@ describe('EntryDialog', () => {
       />
     );
 
-    expect(screen.getByText('Create Time Entry')).toBeInTheDocument();
-    expect(screen.getByText('Time Range')).toBeInTheDocument();
-    expect(screen.getByText('Label *')).toBeInTheDocument();
-    expect(screen.getByText('Color')).toBeInTheDocument();
+    expect(screen.getByText('创建时间条目')).toBeInTheDocument();
+    expect(screen.getByText('时间范围')).toBeInTheDocument();
+    expect(screen.getByText('标签 *')).toBeInTheDocument();
+    expect(screen.getByText('颜色')).toBeInTheDocument();
   });
 
   it('displays formatted time range', () => {
@@ -93,7 +93,7 @@ describe('EntryDialog', () => {
     // Check if duration is displayed (1h 30m)
     // Use a function matcher to find the text even if it's split across elements
     expect(screen.getByText((content, _element) => {
-      return content.includes('1h 30m');
+      return content.includes('1小时 30分钟');
     })).toBeInTheDocument();
   });
 
@@ -107,10 +107,10 @@ describe('EntryDialog', () => {
       />
     );
 
-    const labelInput = screen.getByPlaceholderText('What were you working on?');
+    const labelInput = screen.getByPlaceholderText('你刚刚在做什么？');
     fireEvent.change(labelInput, { target: { value: 'Test Entry' } });
 
-    const submitButton = screen.getByText('Create Entry');
+    const submitButton = screen.getByText('创建条目');
     fireEvent.click(submitButton);
 
     expect(mockOnSubmit).toHaveBeenCalledWith({
@@ -131,7 +131,7 @@ describe('EntryDialog', () => {
       />
     );
 
-    const cancelButton = screen.getByText('Cancel');
+    const cancelButton = screen.getByText('取消');
     fireEvent.click(cancelButton);
 
     expect(mockOnCancel).toHaveBeenCalled();
@@ -157,10 +157,10 @@ describe('EntryDialog', () => {
     if (blueButton) {
       fireEvent.click(blueButton);
 
-      const labelInput = screen.getByPlaceholderText('What were you working on?');
+      const labelInput = screen.getByPlaceholderText('你刚刚在做什么？');
       fireEvent.change(labelInput, { target: { value: 'Test Entry' } });
 
-      const submitButton = screen.getByText('Create Entry');
+      const submitButton = screen.getByText('创建条目');
       fireEvent.click(submitButton);
 
       expect(mockOnSubmit).toHaveBeenCalledWith({
@@ -182,7 +182,7 @@ describe('EntryDialog', () => {
       />
     );
 
-    const submitButton = screen.getByText('Create Entry');
+    const submitButton = screen.getByText('创建条目');
     fireEvent.click(submitButton);
 
     expect(mockOnSubmit).not.toHaveBeenCalled();
@@ -198,10 +198,10 @@ describe('EntryDialog', () => {
       />
     );
 
-    const labelInput = screen.getByPlaceholderText('What were you working on?');
+    const labelInput = screen.getByPlaceholderText('你刚刚在做什么？');
     fireEvent.change(labelInput, { target: { value: '  Test Entry  ' } });
 
-    const submitButton = screen.getByText('Create Entry');
+    const submitButton = screen.getByText('创建条目');
     fireEvent.click(submitButton);
 
     expect(mockOnSubmit).toHaveBeenCalledWith({

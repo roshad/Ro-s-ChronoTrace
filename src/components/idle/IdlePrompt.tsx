@@ -20,13 +20,13 @@ export const IdlePrompt: React.FC<IdlePromptProps> = ({ idlePeriod, onResolved, 
     const minutes = Math.floor(ms / 60000);
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
-    if (hours > 0) return `${hours}h ${remainingMinutes}m`;
-    return `${minutes}m`;
+    if (hours > 0) return `${hours}小时 ${remainingMinutes}分钟`;
+    return `${minutes}分钟`;
   };
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString('en-US', {
+    return date.toLocaleTimeString('zh-CN', {
       hour: '2-digit',
       minute: '2-digit',
     });
@@ -44,7 +44,7 @@ export const IdlePrompt: React.FC<IdlePromptProps> = ({ idlePeriod, onResolved, 
       onResolved();
     } catch (error) {
       console.error('Failed to resolve idle period:', error);
-      alert('Failed to resolve idle period. Please try again.');
+      alert('处理空闲时段失败，请稍后重试。');
     } finally {
       setLoading(false);
     }
@@ -55,32 +55,32 @@ export const IdlePrompt: React.FC<IdlePromptProps> = ({ idlePeriod, onResolved, 
   return (
     <div className="dialog-overlay" onClick={onClose}>
       <div className="dialog-card" onClick={(e) => e.stopPropagation()}>
-        <h2 className="dialog-title">Idle Time Detected</h2>
+        <h2 className="dialog-title">检测到空闲时间</h2>
 
         <div className="muted" style={{ marginBottom: 24 }}>
           <p style={{ margin: '8px 0' }}>
-            <strong>Duration:</strong> {formatDuration(duration)}
+            <strong>时长：</strong> {formatDuration(duration)}
           </p>
           <p style={{ margin: '8px 0' }}>
-            <strong>Period:</strong> {formatTime(idlePeriod.start_time)} - {formatTime(idlePeriod.end_time)}
+            <strong>时间段：</strong> {formatTime(idlePeriod.start_time)} - {formatTime(idlePeriod.end_time)}
           </p>
         </div>
 
-        <p style={{ marginBottom: 16 }}>What would you like to do with this idle time?</p>
+        <p style={{ marginBottom: 16 }}>这段空闲时间你想怎么处理？</p>
 
         {!showLabelInput ? (
           <div className="stack-col">
             <button onClick={() => handleResolve('discarded')} disabled={loading} className="btn btn-secondary">
-              Discard time (keep as gap)
+              丢弃（保持为空档）
             </button>
             <button onClick={() => handleResolve('merged')} disabled={loading} className="btn btn-primary">
-              Add to previous task
+              合并到上一条任务
             </button>
             <button onClick={() => setShowLabelInput(true)} disabled={loading} className="btn btn-success">
-              Create new task
+              创建新任务
             </button>
             <button onClick={onClose} disabled={loading} className="btn btn-ghost">
-              Decide later
+              稍后决定
             </button>
           </div>
         ) : (
@@ -89,7 +89,7 @@ export const IdlePrompt: React.FC<IdlePromptProps> = ({ idlePeriod, onResolved, 
               type="text"
               value={newLabel}
               onChange={(e) => setNewLabel(e.target.value)}
-              placeholder="Enter task label..."
+              placeholder="请输入任务标签..."
               autoFocus
               className="input"
               style={{ marginBottom: 12 }}
@@ -107,11 +107,11 @@ export const IdlePrompt: React.FC<IdlePromptProps> = ({ idlePeriod, onResolved, 
                 className="btn btn-success"
                 style={{ flex: 1 }}
               >
-                {loading ? 'Creating...' : 'Create Task'}
-              </button>
+                  {loading ? '创建中...' : '创建任务'}
+                </button>
 
               <button onClick={() => setShowLabelInput(false)} disabled={loading} className="btn btn-secondary" style={{ flex: 1 }}>
-                Back
+                返回
               </button>
             </div>
           </div>

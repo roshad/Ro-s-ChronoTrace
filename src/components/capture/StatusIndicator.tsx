@@ -9,7 +9,7 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = ({ lastCaptureTim
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString('en-US', {
+    return date.toLocaleTimeString('zh-CN', {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
@@ -19,8 +19,8 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = ({ lastCaptureTim
   return (
     <div className={`status-indicator ${isActive ? '' : 'inactive'}`}>
       <span className="status-dot" />
-      <span>{isActive ? 'Active' : 'Inactive'}</span>
-      {lastCaptureTime && <span className="small muted">Last capture: {formatTime(lastCaptureTime)}</span>}
+      <span>{isActive ? '运行中' : '已停止'}</span>
+      {lastCaptureTime && <span className="small muted">最近截图：{formatTime(lastCaptureTime)}</span>}
     </div>
   );
 };

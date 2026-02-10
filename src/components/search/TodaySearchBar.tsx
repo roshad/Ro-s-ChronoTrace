@@ -87,7 +87,7 @@ export const TodaySearchBar: React.FC<RangeSearchBarProps> = ({ date }) => {
       } else {
         totals.set(key, {
           key,
-          label: category?.name ?? (entry.category_id ? 'Unknown category' : 'Uncategorized'),
+          label: category?.name ?? (entry.category_id ? '未知分类' : '未分类'),
           color: category?.color ?? entry.color ?? '#6b7280',
           durationMs,
         });
@@ -108,18 +108,18 @@ export const TodaySearchBar: React.FC<RangeSearchBarProps> = ({ date }) => {
     const totalMinutes = Math.round(durationMs / 60000);
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
-    if (hours === 0) return `${minutes}m`;
-    if (minutes === 0) return `${hours}h`;
-    return `${hours}h ${minutes}m`;
+    if (hours === 0) return `${minutes}分钟`;
+    if (minutes === 0) return `${hours}小时`;
+    return `${hours}小时 ${minutes}分钟`;
   };
 
   const formatTime = (timestamp: number) => {
-    const d = new Date(timestamp);
-    if (range === 'day') {
-      return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    }
-    return d.toLocaleString('en-US', {
-      month: 'short',
+      const d = new Date(timestamp);
+      if (range === 'day') {
+      return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+      }
+    return d.toLocaleString('zh-CN', {
+      month: 'long',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
@@ -127,10 +127,10 @@ export const TodaySearchBar: React.FC<RangeSearchBarProps> = ({ date }) => {
   };
 
   const rangeLabels: Record<RangeType, string> = {
-    day: 'Today',
-    month: 'This Month',
-    year: 'This Year',
-    all: 'All Time',
+    day: '今天',
+    month: '本月',
+    year: '本年',
+    all: '全部',
   };
 
   return (
@@ -139,7 +139,7 @@ export const TodaySearchBar: React.FC<RangeSearchBarProps> = ({ date }) => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
           <h3 className="search-heading">
             <Search size={20} color="var(--primary)" />
-            Activity Search
+            行为搜索
           </h3>
           <div className="segment-control">
             {(['day', 'month', 'year', 'all'] as RangeType[]).map((r) => (
@@ -151,7 +151,7 @@ export const TodaySearchBar: React.FC<RangeSearchBarProps> = ({ date }) => {
         </div>
 
         <p className="muted small" style={{ marginBottom: 12 }}>
-          Search activity records within {rangeLabels[range].toLowerCase()}.
+          在 {rangeLabels[range]} 范围内搜索行为记录。
         </p>
 
         <div className="search-input-wrap">
@@ -159,7 +159,7 @@ export const TodaySearchBar: React.FC<RangeSearchBarProps> = ({ date }) => {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={`Search in ${rangeLabels[range].toLowerCase()}...`}
+            placeholder={`搜索${rangeLabels[range]}范围内的记录...`}
             className="input search-input"
           />
           <div className="search-icon-wrap">
@@ -170,17 +170,17 @@ export const TodaySearchBar: React.FC<RangeSearchBarProps> = ({ date }) => {
 
       <div className="stats-group">
         <div className="stats-row" style={{ marginBottom: 10 }}>
-          <h4 style={{ margin: 0, fontSize: 14 }}>Time Breakdown</h4>
+          <h4 style={{ margin: 0, fontSize: 14 }}>时间占比统计</h4>
           {isLoadingStats ? (
-            <span className="small muted">Loading...</span>
+            <span className="small muted">加载中...</span>
           ) : (
             <span className="small" style={{ fontWeight: 700 }}>
-              Total {formatDuration(stats.totalDurationMs)}
+              总计 {formatDuration(stats.totalDurationMs)}
             </span>
           )}
         </div>
 
-        {!isLoadingStats && stats.items.length === 0 && <div className="small muted">No time entries in this range.</div>}
+        {!isLoadingStats && stats.items.length === 0 && <div className="small muted">该范围内暂无时间条目。</div>}
 
         {!isLoadingStats && stats.items.length > 0 && (
           <div className="stack-col">
@@ -241,14 +241,14 @@ export const TodaySearchBar: React.FC<RangeSearchBarProps> = ({ date }) => {
                       color: result.type === 'time_entry' ? '#166534' : '#4338ca',
                     }}
                   >
-                    {result.type === 'time_entry' ? 'Entry' : 'Window'}
+                    {result.type === 'time_entry' ? '条目' : '窗口'}
                   </div>
                 </div>
               ))}
             </div>
           ) : !isLoading && (
             <div className="panel panel-soft" style={{ padding: 16, textAlign: 'center' }}>
-              No records found for "{debouncedQuery}".
+              未找到与“{debouncedQuery}”相关的记录。
             </div>
           )}
         </div>

@@ -1,24 +1,25 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 :root {
-  --bg: #f0fdfa;
-  --surface: #ffffff;
-  --surface-soft: #f7fcfb;
-  --border: #cce7e4;
-  --border-strong: #9fcfca;
-  --text: #134e4a;
-  --text-muted: #4b6b68;
-  --primary: #0d9488;
-  --primary-strong: #0f766e;
+  --bg: #071311;
+  --surface: #0f1f1d;
+  --surface-soft: #152825;
+  --border: #1e3a36;
+  --border-strong: #2d5b54;
+  --text: #e1f5f1;
+  --text-muted: #99b9b3;
+  --primary: #14b8a6;
+  --primary-strong: #0d9488;
   --accent: #f97316;
   --success: #16a34a;
   --danger: #dc2626;
-  --focus-ring: rgba(13, 148, 136, 0.2);
-  --shadow-sm: 0 2px 8px rgba(19, 78, 74, 0.08);
-  --shadow-md: 0 10px 30px rgba(19, 78, 74, 0.16);
+  --focus-ring: rgba(20, 184, 166, 0.25);
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.45);
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
+  color-scheme: dark;
 }
 
 * {
@@ -31,8 +32,8 @@ body {
   font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
   color: var(--text);
   background:
-    radial-gradient(circle at top left, rgba(20, 184, 166, 0.14), transparent 42%),
-    radial-gradient(circle at top right, rgba(249, 115, 22, 0.1), transparent 38%),
+    radial-gradient(circle at top left, rgba(20, 184, 166, 0.2), transparent 42%),
+    radial-gradient(circle at top right, rgba(249, 115, 22, 0.14), transparent 38%),
     var(--bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -175,7 +176,7 @@ select {
   padding: 10px 12px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
-  background: #fff;
+  background: var(--surface-soft);
   color: var(--text);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -316,7 +317,7 @@ select {
   padding: 8px 12px;
   border-radius: 999px;
   border: 1px dashed var(--border-strong);
-  background: #fff;
+  background: var(--surface);
   color: var(--text-muted);
   cursor: pointer;
 }
@@ -328,7 +329,7 @@ select {
   z-index: 1200;
   min-width: 220px;
   padding: 10px;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-sm);
@@ -436,7 +437,7 @@ select {
   height: 8px;
   border-radius: 999px;
   overflow: hidden;
-  background: #d8edeb;
+  background: #1b3531;
 }
 
 .stat-bar {
@@ -518,8 +519,8 @@ select {
   padding: 8px 12px;
   border-radius: 999px;
   border: 1px solid var(--border);
-  background: #e7f9f7;
-  color: #0f766e;
+  background: #13312d;
+  color: #8ee5da;
   font-size: 13px;
   font-weight: 600;
 }
@@ -532,8 +533,8 @@ select {
 }
 
 .status-indicator.inactive {
-  background: #fff1f2;
-  color: #991b1b;
+  background: #351b1f;
+  color: #fda4af;
 }
 
 .status-indicator.inactive .status-dot {
@@ -570,12 +571,12 @@ select {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #bddfdb;
+  background: #2f5d56;
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a8d3ce;
+  background: #3b7269;
 }
 
 @media (max-width: 900px) {

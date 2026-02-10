@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SearchBar } from './SearchBar';
@@ -53,14 +53,14 @@ describe('SearchBar', () => {
   it('renders search input', () => {
     renderWithQueryClient(<SearchBar />);
 
-    const searchInput = screen.getByPlaceholderText('Search activities... (min 2 characters)');
+    const searchInput = screen.getByPlaceholderText('搜索行为记录...（至少 2 个字符）');
     expect(searchInput).toBeInTheDocument();
   });
 
   it('updates query state when typing', () => {
     renderWithQueryClient(<SearchBar />);
 
-    const searchInput = screen.getByPlaceholderText('Search activities... (min 2 characters)') as HTMLInputElement;
+    const searchInput = screen.getByPlaceholderText('搜索行为记录...（至少 2 个字符）') as HTMLInputElement;
     fireEvent.change(searchInput, { target: { value: 'test' } });
 
     expect(searchInput.value).toBe('test');
@@ -71,7 +71,7 @@ describe('SearchBar', () => {
 
     renderWithQueryClient(<SearchBar />);
 
-    const searchInput = screen.getByPlaceholderText('Search activities... (min 2 characters)');
+    const searchInput = screen.getByPlaceholderText('搜索行为记录...（至少 2 个字符）');
     fireEvent.change(searchInput, { target: { value: 'test' } });
 
     // Should not call API immediately
@@ -88,7 +88,7 @@ describe('SearchBar', () => {
   it('does not search with less than 2 characters', () => {
     renderWithQueryClient(<SearchBar />);
 
-    const searchInput = screen.getByPlaceholderText('Search activities... (min 2 characters)');
+    const searchInput = screen.getByPlaceholderText('搜索行为记录...（至少 2 个字符）');
     fireEvent.change(searchInput, { target: { value: 't' } });
 
     advanceTimers(300);
@@ -103,14 +103,14 @@ describe('SearchBar', () => {
 
     renderWithQueryClient(<SearchBar />);
 
-    const searchInput = screen.getByPlaceholderText('Search activities... (min 2 characters)');
+    const searchInput = screen.getByPlaceholderText('搜索行为记录...（至少 2 个字符）');
     fireEvent.change(searchInput, { target: { value: 'test' } });
 
     advanceTimers(300);
 
     // Wait for loading state to appear
     await waitFor(() => {
-      expect(screen.getByText('Searching...')).toBeInTheDocument();
+      expect(screen.getByText('搜索中...')).toBeInTheDocument();
     });
   });
 
@@ -128,7 +128,7 @@ describe('SearchBar', () => {
 
     renderWithQueryClient(<SearchBar />);
 
-    const searchInput = screen.getByPlaceholderText('Search activities... (min 2 characters)');
+    const searchInput = screen.getByPlaceholderText('搜索行为记录...（至少 2 个字符）');
     fireEvent.change(searchInput, { target: { value: 'test' } });
 
     advanceTimers(300);
@@ -139,7 +139,7 @@ describe('SearchBar', () => {
 
     // Use function matcher to find text even if split across elements
     expect(screen.getByText((content, element) => {
-      return element?.tagName === 'DIV' && content.includes('Time Entry');
+      return element?.tagName === 'DIV' && content.includes('时间条目');
     })).toBeInTheDocument();
     expect(screen.getByText((content, element) => {
       return element?.tagName === 'DIV' && content.includes('chrome.exe');
@@ -151,13 +151,13 @@ describe('SearchBar', () => {
 
     renderWithQueryClient(<SearchBar />);
 
-    const searchInput = screen.getByPlaceholderText('Search activities... (min 2 characters)');
+    const searchInput = screen.getByPlaceholderText('搜索行为记录...（至少 2 个字符）');
     fireEvent.change(searchInput, { target: { value: 'test' } });
 
     advanceTimers(300);
 
     await waitFor(() => {
-      expect(screen.getByText('No results found')).toBeInTheDocument();
+      expect(screen.getByText('未找到结果')).toBeInTheDocument();
     });
   });
 
@@ -174,7 +174,7 @@ describe('SearchBar', () => {
 
     renderWithQueryClient(<SearchBar />);
 
-    const searchInput = screen.getByPlaceholderText('Search activities... (min 2 characters)');
+    const searchInput = screen.getByPlaceholderText('搜索行为记录...（至少 2 个字符）');
     fireEvent.change(searchInput, { target: { value: 'test' } });
 
     advanceTimers(300);
@@ -185,12 +185,12 @@ describe('SearchBar', () => {
 
     // Check that timestamp is displayed (format may vary by timezone)
     const timestampElement = screen.getByText((content, element) => {
-      return element?.tagName === 'DIV' && content.includes('Jan 28') && content.includes(':');
+      return element?.tagName === 'DIV' && content.includes('1月') && content.includes(':');
     });
     expect(timestampElement).toBeInTheDocument();
   });
 
-  it('displays window activity type', async () => {
+  it('displays 窗口活动 type', async () => {
     const mockResults = [
       {
         title: 'Test Window',
@@ -203,7 +203,7 @@ describe('SearchBar', () => {
 
     renderWithQueryClient(<SearchBar />);
 
-    const searchInput = screen.getByPlaceholderText('Search activities... (min 2 characters)');
+    const searchInput = screen.getByPlaceholderText('搜索行为记录...（至少 2 个字符）');
     fireEvent.change(searchInput, { target: { value: 'test' } });
 
     advanceTimers(300);
@@ -214,7 +214,7 @@ describe('SearchBar', () => {
 
     // Use function matcher to find text even if split across elements
     expect(screen.getByText((content, element) => {
-      return element?.tagName === 'DIV' && content.includes('Window Activity');
+      return element?.tagName === 'DIV' && content.includes('窗口活动');
     })).toBeInTheDocument();
   });
 
@@ -223,7 +223,7 @@ describe('SearchBar', () => {
 
     renderWithQueryClient(<SearchBar />);
 
-    const searchInput = screen.getByPlaceholderText('Search activities... (min 2 characters)');
+    const searchInput = screen.getByPlaceholderText('搜索行为记录...（至少 2 个字符）');
 
     // Type quickly
     fireEvent.change(searchInput, { target: { value: 't' } });
@@ -248,3 +248,4 @@ describe('SearchBar', () => {
     expect(mockSearchActivities).toHaveBeenCalledWith('test');
   });
 });
+

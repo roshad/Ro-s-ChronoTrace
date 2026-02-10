@@ -44,7 +44,7 @@ export const TimerInput: React.FC<TimerInputProps> = ({ onStart, onStop }) => {
         setCategoryId(undefined);
       } catch (error) {
         console.error('Failed to stop timer:', error);
-        alert(`Failed to stop timer: ${error}`);
+        alert(`停止计时失败：${error}`);
       } finally {
         setLoading(false);
       }
@@ -61,7 +61,7 @@ export const TimerInput: React.FC<TimerInputProps> = ({ onStart, onStop }) => {
         });
       } catch (error) {
         console.error('Failed to start timer:', error);
-        alert(`Failed to start timer: ${error}`);
+        alert(`开始计时失败：${error}`);
       } finally {
         setLoading(false);
       }
@@ -82,7 +82,7 @@ export const TimerInput: React.FC<TimerInputProps> = ({ onStart, onStop }) => {
     <div className="panel timer-panel">
       <input
         type="text"
-        placeholder="What are you working on?"
+        placeholder="你正在做什么？"
         value={label}
         onChange={(e) => setLabel(e.target.value)}
         disabled={!!activeTimer || loading}
@@ -102,7 +102,7 @@ export const TimerInput: React.FC<TimerInputProps> = ({ onStart, onStop }) => {
         className={`btn ${activeTimer ? 'btn-danger' : 'btn-success'}`}
         style={{ minWidth: 110 }}
       >
-        {loading ? '...' : activeTimer ? 'Stop' : 'Start'}
+        {loading ? '处理中...' : activeTimer ? '停止' : '开始'}
       </button>
     </div>
   );

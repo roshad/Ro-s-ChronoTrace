@@ -13,7 +13,7 @@ export const ScreenshotPreview: React.FC<ScreenshotPreviewProps> = ({
 }) => {
   const formatTime = (ts: number) => {
     const date = new Date(ts);
-    return date.toLocaleTimeString('en-US', {
+    return date.toLocaleTimeString('zh-CN', {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
@@ -23,7 +23,7 @@ export const ScreenshotPreview: React.FC<ScreenshotPreviewProps> = ({
   if (!filePath && !dataUrl) {
     return (
       <div className="panel preview-card">
-        <div className="muted small">No screenshot available for this time</div>
+        <div className="muted small">当前时间点没有可用截图</div>
       </div>
     );
   }
@@ -32,12 +32,12 @@ export const ScreenshotPreview: React.FC<ScreenshotPreviewProps> = ({
 
   return (
     <div className="panel preview-card">
-      <h3 style={{ margin: '0 0 8px 0' }}>Screenshot Preview</h3>
-      {timestamp && <div className="muted small">Captured at: {formatTime(timestamp)}</div>}
+      <h3 style={{ margin: '0 0 8px 0' }}>截图预览</h3>
+      {timestamp && <div className="muted small">截图时间：{formatTime(timestamp)}</div>}
       <div className="preview-frame">
         <img
           src={imageSrc}
-          alt="Screenshot"
+          alt="截图"
           style={{
             maxWidth: '100%',
             maxHeight: '400px',
@@ -47,7 +47,7 @@ export const ScreenshotPreview: React.FC<ScreenshotPreviewProps> = ({
             e.currentTarget.style.display = 'none';
             const parent = e.currentTarget.parentElement;
             if (parent) {
-              parent.innerHTML = '<div style="color: #ffffff; padding: 20px;">Failed to load screenshot</div>';
+              parent.innerHTML = '<div style="color: #ffffff; padding: 20px;">截图加载失败</div>';
             }
           }}
         />

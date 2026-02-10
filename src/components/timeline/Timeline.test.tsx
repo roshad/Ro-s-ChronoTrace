@@ -193,9 +193,9 @@ describe('Timeline', () => {
   it('renders zoom controls with default 24h view', () => {
     renderWithQueryClient(<Timeline date={mockDate} timeEntries={mockTimeEntries} />);
 
-    expect(screen.getByText('Timeline Zoom')).toBeInTheDocument();
-    expect(screen.getByText('24h view')).toBeInTheDocument();
-    expect(screen.getByLabelText('Timeline zoom hours')).toBeInTheDocument();
+    expect(screen.getByText('时间轴缩放')).toBeInTheDocument();
+    expect(screen.getByText('当前视野：24 小时')).toBeInTheDocument();
+    expect(screen.getByLabelText('时间轴缩放小时数')).toBeInTheDocument();
   });
 
   it('zooms with ctrl+wheel', () => {
@@ -204,7 +204,7 @@ describe('Timeline', () => {
     const scrollContainer = screen.getByTestId('timeline-scroll-container');
     fireEvent.wheel(scrollContainer, { deltaY: -100, ctrlKey: true, clientX: 200 });
 
-    expect(screen.getByText('23h view')).toBeInTheDocument();
+    expect(screen.getByText('当前视野：23 小时')).toBeInTheDocument();
   });
 
   it('keeps normal wheel as pan and not zoom', () => {
@@ -213,6 +213,6 @@ describe('Timeline', () => {
     const scrollContainer = screen.getByTestId('timeline-scroll-container');
     fireEvent.wheel(scrollContainer, { deltaY: -100, clientX: 200 });
 
-    expect(screen.getByText('24h view')).toBeInTheDocument();
+    expect(screen.getByText('当前视野：24 小时')).toBeInTheDocument();
   });
 });

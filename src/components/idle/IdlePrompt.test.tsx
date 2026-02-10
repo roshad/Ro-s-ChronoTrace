@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+﻿import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { IdlePrompt } from './IdlePrompt';
 import { api } from '../../services/api';
 
@@ -33,10 +33,10 @@ describe('IdlePrompt', () => {
       />
     );
 
-    expect(screen.getByText('Idle Time Detected')).toBeInTheDocument();
-    expect(screen.getByText(/Duration:/)).toBeInTheDocument();
-    expect(screen.getByText(/Period:/)).toBeInTheDocument();
-    expect(screen.getByText('30m')).toBeInTheDocument();
+    expect(screen.getByText('检测到空闲时间')).toBeInTheDocument();
+    expect(screen.getByText(/时长：/)).toBeInTheDocument();
+    expect(screen.getByText(/时间段：/)).toBeInTheDocument();
+    expect(screen.getByText('30分钟')).toBeInTheDocument();
   });
 
   it('displays formatted time range', () => {
@@ -48,11 +48,7 @@ describe('IdlePrompt', () => {
       />
     );
 
-    // Check if time range is displayed (look for the period paragraph)
-    const periodText = screen.getByText((content, element) => {
-      return element?.tagName === 'P' && content.includes('PM') && content.includes('-');
-    });
-    expect(periodText).toBeInTheDocument();
+    expect(screen.getByText(/\d{2}:\d{2}\s-\s\d{2}:\d{2}/)).toBeInTheDocument();
   });
 
   it('calls onResolved when discard button is clicked', async () => {
@@ -66,7 +62,7 @@ describe('IdlePrompt', () => {
       />
     );
 
-    const discardButton = screen.getByText('Discard time (keep as gap)');
+    const discardButton = screen.getByText('丢弃（保持为空档）');
     fireEvent.click(discardButton);
 
     await waitFor(() => {
@@ -81,7 +77,7 @@ describe('IdlePrompt', () => {
     expect(mockOnResolved).toHaveBeenCalled();
   });
 
-  it('shows label input when create new task button is clicked', () => {
+  it('shows label input when 创建新任务 button is clicked', () => {
     render(
       <IdlePrompt
         idlePeriod={mockIdlePeriod}
@@ -90,12 +86,12 @@ describe('IdlePrompt', () => {
       />
     );
 
-    const createTaskButton = screen.getByText('Create new task');
+    const createTaskButton = screen.getByText('创建新任务');
     fireEvent.click(createTaskButton);
 
-    expect(screen.getByPlaceholderText('Enter task label...')).toBeInTheDocument();
-    expect(screen.getByText('Create Task')).toBeInTheDocument();
-    expect(screen.getByText('Back')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('请输入任务标签...')).toBeInTheDocument();
+    expect(screen.getByText('创建任务')).toBeInTheDocument();
+    expect(screen.getByText('返回')).toBeInTheDocument();
   });
 
   it('calls onResolved when new task is created', async () => {
@@ -109,16 +105,16 @@ describe('IdlePrompt', () => {
       />
     );
 
-    // Click create new task button
-    const createTaskButton = screen.getByText('Create new task');
+    // Click 创建新任务 button
+    const createTaskButton = screen.getByText('创建新任务');
     fireEvent.click(createTaskButton);
 
     // Enter label
-    const labelInput = screen.getByPlaceholderText('Enter task label...');
+    const labelInput = screen.getByPlaceholderText('请输入任务标签...');
     fireEvent.change(labelInput, { target: { value: 'Test Task' } });
 
-    // Click create task button
-    const submitButton = screen.getByText('Create Task');
+    // Click 创建任务 button
+    const submitButton = screen.getByText('创建任务');
     fireEvent.click(submitButton);
 
     await waitFor(() => {
@@ -144,12 +140,12 @@ describe('IdlePrompt', () => {
       />
     );
 
-    // Click create new task button
-    const createTaskButton = screen.getByText('Create new task');
+    // Click 创建新任务 button
+    const createTaskButton = screen.getByText('创建新任务');
     fireEvent.click(createTaskButton);
 
     // Enter label and press Enter
-    const labelInput = screen.getByPlaceholderText('Enter task label...');
+    const labelInput = screen.getByPlaceholderText('请输入任务标签...');
     fireEvent.change(labelInput, { target: { value: 'Test Task' } });
     fireEvent.keyDown(labelInput, { key: 'Enter', code: 'Enter' });
 
@@ -174,18 +170,18 @@ describe('IdlePrompt', () => {
       />
     );
 
-    // Click create new task button
-    const createTaskButton = screen.getByText('Create new task');
+    // Click 创建新任务 button
+    const createTaskButton = screen.getByText('创建新任务');
     fireEvent.click(createTaskButton);
 
     // Try to submit with empty label
-    const submitButton = screen.getByText('Create Task');
+    const submitButton = screen.getByText('创建任务');
     fireEvent.click(submitButton);
 
     expect(mockResolveIdlePeriod).not.toHaveBeenCalled();
   });
 
-  it('returns to main view when back button is clicked', () => {
+  it('returns to main view when 返回 button is clicked', () => {
     render(
       <IdlePrompt
         idlePeriod={mockIdlePeriod}
@@ -194,22 +190,22 @@ describe('IdlePrompt', () => {
       />
     );
 
-    // Click create new task button
-    const createTaskButton = screen.getByText('Create new task');
+    // Click 创建新任务 button
+    const createTaskButton = screen.getByText('创建新任务');
     fireEvent.click(createTaskButton);
 
-    // Click back button
-    const backButton = screen.getByText('Back');
-    fireEvent.click(backButton);
+    // Click 返回 button
+    const 返回Button = screen.getByText('返回');
+    fireEvent.click(返回Button);
 
     // Should return to main view
-    expect(screen.getByText('Discard time (keep as gap)')).toBeInTheDocument();
-    expect(screen.getByText('Add to previous task')).toBeInTheDocument();
-    expect(screen.getByText('Create new task')).toBeInTheDocument();
-    expect(screen.getByText('Decide later')).toBeInTheDocument();
+    expect(screen.getByText('丢弃（保持为空档）')).toBeInTheDocument();
+    expect(screen.getByText('合并到上一条任务')).toBeInTheDocument();
+    expect(screen.getByText('创建新任务')).toBeInTheDocument();
+    expect(screen.getByText('稍后决定')).toBeInTheDocument();
   });
 
-  it('calls onResolved when add to previous task button is clicked', async () => {
+  it('calls onResolved when merge button is clicked', async () => {
     mockResolveIdlePeriod.mockResolvedValue(undefined);
 
     render(
@@ -220,7 +216,7 @@ describe('IdlePrompt', () => {
       />
     );
 
-    const mergeButton = screen.getByText('Add to previous task');
+    const mergeButton = screen.getByText('合并到上一条任务');
     fireEvent.click(mergeButton);
 
     await waitFor(() => {
@@ -235,7 +231,7 @@ describe('IdlePrompt', () => {
     expect(mockOnResolved).toHaveBeenCalled();
   });
 
-  it('calls onClose when decide later button is clicked', () => {
+  it('calls onClose when postpone button is clicked', () => {
     render(
       <IdlePrompt
         idlePeriod={mockIdlePeriod}
@@ -244,7 +240,7 @@ describe('IdlePrompt', () => {
       />
     );
 
-    const decideLaterButton = screen.getByText('Decide later');
+    const decideLaterButton = screen.getByText('稍后决定');
     fireEvent.click(decideLaterButton);
 
     expect(mockOnClose).toHaveBeenCalled();
@@ -261,7 +257,7 @@ describe('IdlePrompt', () => {
     );
 
     // Click on overlay (outside of dialog)
-    const overlay = screen.getByText('Idle Time Detected').parentElement?.parentElement;
+    const overlay = screen.getByText('检测到空闲时间').parentElement?.parentElement;
     if (overlay) {
       fireEvent.click(overlay);
     }
@@ -279,7 +275,7 @@ describe('IdlePrompt', () => {
     );
 
     // Click inside of dialog
-    const dialog = screen.getByText('Idle Time Detected').parentElement;
+    const dialog = screen.getByText('检测到空闲时间').parentElement;
     if (dialog) {
       fireEvent.click(dialog);
     }
@@ -300,14 +296,14 @@ describe('IdlePrompt', () => {
       />
     );
 
-    const discardButton = screen.getByText('Discard time (keep as gap)');
+    const discardButton = screen.getByText('丢弃（保持为空档）');
     fireEvent.click(discardButton);
 
     // Check if buttons are disabled
-    expect(screen.getByText('Discard time (keep as gap)')).toBeDisabled();
-    expect(screen.getByText('Add to previous task')).toBeDisabled();
-    expect(screen.getByText('Create new task')).toBeDisabled();
-    expect(screen.getByText('Decide later')).toBeDisabled();
+    expect(screen.getByText('丢弃（保持为空档）')).toBeDisabled();
+    expect(screen.getByText('合并到上一条任务')).toBeDisabled();
+    expect(screen.getByText('创建新任务')).toBeDisabled();
+    expect(screen.getByText('稍后决定')).toBeDisabled();
   });
 
   it('formats duration correctly for hours and minutes', () => {
@@ -325,7 +321,7 @@ describe('IdlePrompt', () => {
       />
     );
 
-    expect(screen.getByText('2h 30m')).toBeInTheDocument();
+    expect(screen.getByText('2小时 30分钟')).toBeInTheDocument();
   });
 
   it('formats duration correctly for minutes only', () => {
@@ -343,6 +339,7 @@ describe('IdlePrompt', () => {
       />
     );
 
-    expect(screen.getByText('15m')).toBeInTheDocument();
+    expect(screen.getByText('15分钟')).toBeInTheDocument();
   });
 });
+

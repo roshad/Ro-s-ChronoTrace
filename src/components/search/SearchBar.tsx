@@ -21,8 +21,8 @@ export const SearchBar: React.FC = () => {
 
   const formatTimestamp = (timestamp: number) => {
     const date = new Date(timestamp);
-    return date.toLocaleString('en-US', {
-      month: 'short',
+    return date.toLocaleString('zh-CN', {
+      month: 'long',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
@@ -36,12 +36,12 @@ export const SearchBar: React.FC = () => {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search activities... (min 2 characters)"
+          placeholder="搜索行为记录...（至少 2 个字符）"
           className="input"
         />
       </div>
 
-      {isLoading && debouncedQuery.length >= 2 && <div className="small muted">Searching...</div>}
+      {isLoading && debouncedQuery.length >= 2 && <div className="small muted">搜索中...</div>}
 
       {results.length > 0 && (
         <div className="result-list" style={{ maxHeight: 400 }}>
@@ -50,7 +50,7 @@ export const SearchBar: React.FC = () => {
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 700, marginBottom: 4 }}>{result.title}</div>
                 <div className="small muted">
-                  {result.type === 'time_entry' ? 'Time Entry' : 'Window Activity'}
+                  {result.type === 'time_entry' ? '时间条目' : '窗口活动'}
                   {result.process_name && ` - ${result.process_name}`}
                 </div>
               </div>
@@ -62,7 +62,7 @@ export const SearchBar: React.FC = () => {
 
       {debouncedQuery.length >= 2 && !isLoading && results.length === 0 && (
         <div className="panel panel-soft" style={{ padding: 12, textAlign: 'center' }}>
-          No results found
+          未找到结果
         </div>
       )}
     </div>
