@@ -1,4 +1,5 @@
-import { create } from 'zustand';
+﻿import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 interface ActiveTimer {
   entryId: number;
@@ -17,12 +18,20 @@ interface TimelineState {
   stopTimer: () => void;
 }
 
-export const useTimelineStore = create<TimelineState>((set) => ({
-  selectedDate: new Date(),
-  dragSelection: null,
-  activeTimer: null,
-  setSelectedDate: (date) => set({ selectedDate: date }),
-  setDragSelection: (selection) => set({ dragSelection: selection }),
-  startTimer: (timer) => set({ activeTimer: timer }),
-  stopTimer: () => set({ activeTimer: null }),
-}));
+export const useTimelineStore = create<TimelineState>()(
+  persist(
+    (set) => ({
+      selectedDate: new Date(),
+      dragSelection: null,
+      activeTimer: null,
+      setSelectedDate: (date) => set({ selectedDate: date }),
+      setDragSelection: (selection) => set({ dragSelection: selection }),
+      startTimer: (timer) => set({ activeTimer: timer }),
+      stopTimer: () => set({ activeTimer: null }),
+    }),
+    {
+      name: 'timeline-store',
+      partialize: (state) => ({ activeTimer: state.activeTimer }),
+    }
+  )
+);

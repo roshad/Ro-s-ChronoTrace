@@ -104,6 +104,33 @@ pub fn get_screenshots_for_day(conn: &Connection, day_id: i32) -> AppResult<Vec<
     Ok(screenshots)
 }
 
+/// Get screenshot timestamps in a day range [start_of_day, end_of_day)
+pub fn get_screenshot_timestamps_for_day(
+    conn: &Connection,
+    start_of_day: i64,
+    end_of_day: i64,
+) -> AppResult<Vec<i64>> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT timestamp FROM screenshots
+             WHERE timestamp >= ?1 AND timestamp < ?2
+             ORDER BY timestamp",
+        )
+        .map_err(|e| format!("Failed to prepare screenshot timestamps query: {}", e))?;
+
+    let rows = stmt
+        .query_map(rusqlite::params![start_of_day, end_of_day], |row| {
+            row.get::<_, i64>(0)
+        })
+        .map_err(|e| format!("Failed to query screenshot timestamps: {}", e))?;
+
+    let timestamps = rows
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| format!("Failed to collect screenshot timestamps: {}", e))?;
+
+    Ok(timestamps)
+}
+
 /// Convert timestamp (milliseconds) to day_id (YYYYMMDD integer)
 fn timestamp_to_day_id(timestamp: i64) -> i32 {
     use chrono::{DateTime, Datelike, Utc};

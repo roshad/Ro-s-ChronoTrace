@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Timeline } from './Timeline';
@@ -54,7 +54,6 @@ describe('Timeline', () => {
   it('renders timeline with time entries', () => {
     renderWithQueryClient(<Timeline date={mockDate} timeEntries={mockTimeEntries} />);
 
-    // Check if time entry labels are rendered
     expect(screen.getByText('Work')).toBeInTheDocument();
     expect(screen.getByText('Meeting')).toBeInTheDocument();
   });
@@ -62,13 +61,12 @@ describe('Timeline', () => {
   it('renders hour markers', () => {
     renderWithQueryClient(<Timeline date={mockDate} timeEntries={mockTimeEntries} />);
 
-    // Check if some hour markers are rendered
     expect(screen.getByText('0:00')).toBeInTheDocument();
     expect(screen.getByText('12:00')).toBeInTheDocument();
     expect(screen.getByText('24:00')).toBeInTheDocument();
   });
 
-  it('calls onHover when mouse moves over timeline', () => {
+  it('calls onHover when mouse moves over timeline lane', () => {
     const mockOnHover = jest.fn();
     renderWithQueryClient(
       <Timeline
@@ -82,10 +80,17 @@ describe('Timeline', () => {
     if (svg) {
       fireEvent.mouseMove(svg, {
         clientX: 300,
-        currentTarget: { getBoundingClientRect: () => ({ left: 0 }) },
+        clientY: 50,
+        currentTarget: { getBoundingClientRect: () => ({ left: 0, top: 0 }) },
       });
 
       expect(mockOnHover).toHaveBeenCalled();
+      const firstCall = mockOnHover.mock.calls[0]?.[0];
+      expect(firstCall).toEqual(expect.objectContaining({
+        timestamp: expect.any(Number),
+        clientX: 300,
+        clientY: 50,
+      }));
     }
   });
 
@@ -101,19 +106,18 @@ describe('Timeline', () => {
 
     const svg = document.querySelector('svg');
     if (svg) {
-      // Mouse down
       fireEvent.mouseDown(svg, {
         clientX: 300,
-        currentTarget: { getBoundingClientRect: () => ({ left: 0 }) },
+        clientY: 40,
+        currentTarget: { getBoundingClientRect: () => ({ left: 0, top: 0 }) },
       });
 
-      // Mouse move
       fireEvent.mouseMove(svg, {
         clientX: 600,
-        currentTarget: { getBoundingClientRect: () => ({ left: 0 }) },
+        clientY: 40,
+        currentTarget: { getBoundingClientRect: () => ({ left: 0, top: 0 }) },
       });
 
-      // Mouse up
       fireEvent.mouseUp(svg);
 
       expect(mockOnDragSelect).toHaveBeenCalled();
@@ -132,22 +136,18 @@ describe('Timeline', () => {
 
     const svg = document.querySelector('svg');
     if (svg) {
-      // Mouse down
       fireEvent.mouseDown(svg, {
         clientX: 300,
-        currentTarget: { getBoundingClientRect: () => ({ left: 0 }) },
+        clientY: 40,
+        currentTarget: { getBoundingClientRect: () => ({ left: 0, top: 0 }) },
       });
 
-      // Mouse move (very small distance, less than 1 minute)
-      // Timeline is 24 hours wide at default zoom.
-      // 1 minute = 60000ms = (60000 / 86400000) * 1200 = 0.833px
-      // So moving less than 1 pixel should be less than 1 minute
       fireEvent.mouseMove(svg, {
         clientX: 300.5,
-        currentTarget: { getBoundingClientRect: () => ({ left: 0 }) },
+        clientY: 40,
+        currentTarget: { getBoundingClientRect: () => ({ left: 0, top: 0 }) },
       });
 
-      // Mouse up
       fireEvent.mouseUp(svg);
 
       expect(mockOnDragSelect).not.toHaveBeenCalled();
@@ -157,9 +157,26 @@ describe('Timeline', () => {
   it('renders empty timeline when no time entries', () => {
     renderWithQueryClient(<Timeline date={mockDate} timeEntries={[]} />);
 
-    // Check that no time entry labels are rendered
     expect(screen.queryByText('Work')).not.toBeInTheDocument();
     expect(screen.queryByText('Meeting')).not.toBeInTheDocument();
+  });
+
+  it('renders screenshot markers on timeline', () => {
+    const screenshotTimestamps = [
+      new Date('2026-01-28T09:15:00Z').getTime(),
+      new Date('2026-01-28T14:45:00Z').getTime(),
+    ];
+
+    renderWithQueryClient(
+      <Timeline
+        date={mockDate}
+        timeEntries={mockTimeEntries}
+        screenshotTimestamps={screenshotTimestamps}
+      />
+    );
+
+    const markers = document.querySelectorAll('.screenshot-marker');
+    expect(markers.length).toBe(2);
   });
 
   it('clears drag selection on mouse leave', () => {
@@ -174,16 +191,13 @@ describe('Timeline', () => {
 
     const svg = document.querySelector('svg');
     if (svg) {
-      // Mouse down
       fireEvent.mouseDown(svg, {
         clientX: 300,
-        currentTarget: { getBoundingClientRect: () => ({ left: 0 }) },
+        clientY: 40,
+        currentTarget: { getBoundingClientRect: () => ({ left: 0, top: 0 }) },
       });
 
-      // Mouse leave
       fireEvent.mouseLeave(svg);
-
-      // Mouse up should not trigger onDragSelect after mouse leave
       fireEvent.mouseUp(svg);
 
       expect(mockOnDragSelect).not.toHaveBeenCalled();

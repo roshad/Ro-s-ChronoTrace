@@ -4,6 +4,7 @@
 mod capture;
 mod data;
 mod idle;
+mod app_settings;
 mod types;
 
 fn main() {
@@ -25,6 +26,18 @@ fn main() {
         rt.block_on(start_screenshot_capture());
     });
 
+    // Start per-second process sampling for status bar analytics
+    std::thread::spawn(|| {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(start_process_sampling());
+    });
+
+    // Cleanup old process samples (startup + hourly)
+    std::thread::spawn(|| {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(start_process_samples_cleanup());
+    });
+
     // Start idle detection
     idle::start_idle_detection();
 
@@ -42,10 +55,14 @@ fn main() {
             data::create_category,
             data::delete_category,
             data::get_idle_periods,
+            data::get_screenshot_timestamps_for_day,
+            data::get_process_samples_for_day,
             data::search_activities_cmd,
             data::search_activities_by_range_cmd,
             data::export_data_cmd,
             capture::screenshot::get_screenshot_for_time,
+            app_settings::get_screenshot_settings_cmd,
+            app_settings::update_screenshot_settings_cmd,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -93,6 +110,10 @@ async fn start_window_capture() {
 ///
 /// Captures screenshot every 5 minutes
 async fn start_screenshot_capture() {
+    if let Err(e) = capture_recent_screenshot_on_startup().await {
+        eprintln!("Failed to perform startup screenshot backfill: {}", e);
+    }
+
     loop {
         // Wait 5 minutes before first capture
         tokio::time::sleep(tokio::time::Duration::from_secs(300)).await;
@@ -106,4 +127,62 @@ async fn start_screenshot_capture() {
             }
         }
     }
+}
+
+async fn capture_recent_screenshot_on_startup() -> Result<(), String> {
+    let now = chrono::Local::now().timestamp_millis();
+    let has_recent = data::with_db(|conn| data::get_screenshot_near_time(conn, now, 300000))
+        .map(|v| v.is_some())?;
+
+    if has_recent {
+        return Ok(());
+    }
+
+    match capture::capture_screenshot().await {
+        Ok(file_path) => {
+            println!("Startup screenshot backfill captured: {}", file_path);
+            Ok(())
+        }
+        Err(e) => {
+            eprintln!("Startup screenshot backfill failed: {}", e);
+            Err(e)
+        }
+    }
+}
+
+async fn start_process_sampling() {
+    loop {
+        if let Some(activity) = capture::get_active_window() {
+            let aligned_timestamp = (activity.timestamp / 1000) * 1000;
+            if let Err(e) = data::with_db(|conn| {
+                data::insert_process_sample(conn, aligned_timestamp, &activity.process_name)
+            }) {
+                eprintln!("Failed to insert process sample: {}", e);
+            }
+        }
+
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+    }
+}
+
+async fn start_process_samples_cleanup() {
+    if let Err(e) = cleanup_old_process_samples() {
+        eprintln!("Failed to cleanup old process samples on startup: {}", e);
+    }
+
+    loop {
+        tokio::time::sleep(tokio::time::Duration::from_secs(3600)).await;
+        if let Err(e) = cleanup_old_process_samples() {
+            eprintln!("Failed to cleanup old process samples: {}", e);
+        }
+    }
+}
+
+fn cleanup_old_process_samples() -> Result<(), String> {
+    let cutoff = chrono::Utc::now().timestamp_millis() - (30_i64 * 24 * 60 * 60 * 1000);
+    let deleted = data::with_db(|conn| data::delete_process_samples_before(conn, cutoff))?;
+    if deleted > 0 {
+        println!("Process samples cleanup removed {} old records", deleted);
+    }
+    Ok(())
 }

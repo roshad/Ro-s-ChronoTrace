@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { TimeEntryInput } from '../../services/api';
 import { CategorySelector } from './CategorySelector';
 
 interface EntryDialogProps {
   startTime: number;
   endTime: number;
+  initialLabel?: string;
   onSubmit: (entry: TimeEntryInput) => void;
   onCancel: () => void;
 }
@@ -12,12 +13,16 @@ interface EntryDialogProps {
 export const EntryDialog: React.FC<EntryDialogProps> = ({
   startTime,
   endTime,
+  initialLabel,
   onSubmit,
   onCancel,
 }) => {
-  const [label, setLabel] = useState('');
-  const [color, setColor] = useState('#4CAF50');
+  const [label, setLabel] = useState(initialLabel ?? '');
   const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
+
+  React.useEffect(() => {
+    setLabel(initialLabel ?? '');
+  }, [initialLabel, startTime, endTime]);
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -44,7 +49,6 @@ export const EntryDialog: React.FC<EntryDialogProps> = ({
       start_time: startTime,
       end_time: endTime,
       label: label.trim(),
-      color,
       category_id: categoryId,
     });
   };
@@ -78,27 +82,6 @@ export const EntryDialog: React.FC<EntryDialogProps> = ({
               required
               className="input"
             />
-          </div>
-
-          <div className="field">
-            <label className="field-label">颜色</label>
-            <div className="toolbar-row">
-              {['#4CAF50', '#2196F3', '#FF9800', '#F44336', '#9C27B0', '#607D8B'].map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setColor(c)}
-                  style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 8,
-                    border: color === c ? '2px solid var(--text)' : '1px solid var(--border-strong)',
-                    backgroundColor: c,
-                    cursor: 'pointer',
-                  }}
-                />
-              ))}
-            </div>
           </div>
 
           <div className="dialog-actions">

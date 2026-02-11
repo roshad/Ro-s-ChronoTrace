@@ -51,6 +51,12 @@ pub struct WindowActivity {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct ProcessSample {
+    pub timestamp: i64,
+    pub process_name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct IdlePeriod {
     pub id: i64,
     pub start_time: i64,

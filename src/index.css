@@ -304,6 +304,36 @@ select {
   background: var(--surface-soft);
 }
 
+.screenshot-marker {
+  cursor: pointer;
+}
+
+.process-bar-segment {
+  cursor: pointer;
+  opacity: 0.9;
+}
+
+.process-bar-segment:hover {
+  opacity: 1;
+  filter: brightness(1.08);
+}
+
+.process-usage-tooltip {
+  position: fixed;
+  z-index: 1280;
+  width: min(360px, calc(100vw - 20px));
+  padding: 10px 12px;
+  pointer-events: none;
+}
+
+.process-usage-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+}
+
 .category-selector {
   position: relative;
 }
@@ -510,6 +540,26 @@ select {
   justify-content: center;
   align-items: center;
   overflow: hidden;
+}
+
+.screenshot-tooltip {
+  position: fixed;
+  z-index: 1300;
+  width: min(360px, calc(100vw - 20px));
+  padding: 12px;
+  pointer-events: auto;
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+
+.screenshot-tooltip.is-fading {
+  opacity: 0;
+}
+
+.preview-frame-tooltip {
+  min-height: 160px;
+  max-height: 220px;
+  margin-top: 8px;
 }
 
 .status-indicator {

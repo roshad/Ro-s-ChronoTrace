@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { EntryDialog } from './EntryDialog';
@@ -19,17 +19,11 @@ const mockDeleteCategory = api.deleteCategory as jest.MockedFunction<typeof api.
 const renderWithQueryClient = (component: React.ReactElement) => {
   const queryClient = new QueryClient({
     defaultOptions: {
-      queries: {
-        retry: false,
-      },
+      queries: { retry: false },
     },
   });
 
-  return render(
-    <QueryClientProvider client={queryClient}>
-      {component}
-    </QueryClientProvider>
-  );
+  return render(<QueryClientProvider client={queryClient}>{component}</QueryClientProvider>);
 };
 
 describe('EntryDialog', () => {
@@ -42,14 +36,11 @@ describe('EntryDialog', () => {
     mockOnSubmit.mockClear();
     mockOnCancel.mockClear();
     mockGetCategories.mockResolvedValue([]);
-    mockCreateCategory.mockImplementation(async (category) => ({
-      id: 1,
-      ...category,
-    }));
+    mockCreateCategory.mockImplementation(async (category) => ({ id: 1, ...category }));
     mockDeleteCategory.mockResolvedValue(undefined);
   });
 
-  it('renders dialog with time range', () => {
+  it('renders dialog fields', () => {
     renderWithQueryClient(
       <EntryDialog
         startTime={mockStartTime}
@@ -59,13 +50,12 @@ describe('EntryDialog', () => {
       />
     );
 
-    expect(screen.getByText('创建时间条目')).toBeInTheDocument();
-    expect(screen.getByText('时间范围')).toBeInTheDocument();
-    expect(screen.getByText('标签 *')).toBeInTheDocument();
-    expect(screen.getByText('颜色')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('你刚刚在做什么？')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '创建条目' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '取消' })).toBeInTheDocument();
   });
 
-  it('displays formatted time range', () => {
+  it('calls onSubmit with category only (no color)', () => {
     renderWithQueryClient(
       <EntryDialog
         startTime={mockStartTime}
@@ -75,101 +65,17 @@ describe('EntryDialog', () => {
       />
     );
 
-    // Check if time range is displayed
-    const timeRangeText = screen.getByText(/:/);
-    expect(timeRangeText).toBeInTheDocument();
-  });
-
-  it('displays duration', () => {
-    renderWithQueryClient(
-      <EntryDialog
-        startTime={mockStartTime}
-        endTime={mockEndTime}
-        onSubmit={mockOnSubmit}
-        onCancel={mockOnCancel}
-      />
-    );
-
-    // Check if duration is displayed (1h 30m)
-    // Use a function matcher to find the text even if it's split across elements
-    expect(screen.getByText((content, _element) => {
-      return content.includes('1小时 30分钟');
-    })).toBeInTheDocument();
-  });
-
-  it('calls onSubmit with correct data when form is submitted', () => {
-    renderWithQueryClient(
-      <EntryDialog
-        startTime={mockStartTime}
-        endTime={mockEndTime}
-        onSubmit={mockOnSubmit}
-        onCancel={mockOnCancel}
-      />
-    );
-
-    const labelInput = screen.getByPlaceholderText('你刚刚在做什么？');
-    fireEvent.change(labelInput, { target: { value: 'Test Entry' } });
-
-    const submitButton = screen.getByText('创建条目');
-    fireEvent.click(submitButton);
+    fireEvent.change(screen.getByPlaceholderText('你刚刚在做什么？'), {
+      target: { value: 'Test Entry' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '创建条目' }));
 
     expect(mockOnSubmit).toHaveBeenCalledWith({
       start_time: mockStartTime,
       end_time: mockEndTime,
       label: 'Test Entry',
-      color: '#4CAF50',
+      category_id: undefined,
     });
-  });
-
-  it('calls onCancel when cancel button is clicked', () => {
-    renderWithQueryClient(
-      <EntryDialog
-        startTime={mockStartTime}
-        endTime={mockEndTime}
-        onSubmit={mockOnSubmit}
-        onCancel={mockOnCancel}
-      />
-    );
-
-    const cancelButton = screen.getByText('取消');
-    fireEvent.click(cancelButton);
-
-    expect(mockOnCancel).toHaveBeenCalled();
-    expect(mockOnSubmit).not.toHaveBeenCalled();
-  });
-
-  it('allows color selection', () => {
-    renderWithQueryClient(
-      <EntryDialog
-        startTime={mockStartTime}
-        endTime={mockEndTime}
-        onSubmit={mockOnSubmit}
-        onCancel={mockOnCancel}
-      />
-    );
-
-    // Find color buttons (they are button elements with specific background colors)
-    const colorButtons = screen.getAllByRole('button');
-    const blueButton = colorButtons.find(
-      (btn) => btn.style.backgroundColor === 'rgb(33, 150, 243)'
-    );
-
-    if (blueButton) {
-      fireEvent.click(blueButton);
-
-      const labelInput = screen.getByPlaceholderText('你刚刚在做什么？');
-      fireEvent.change(labelInput, { target: { value: 'Test Entry' } });
-
-      const submitButton = screen.getByText('创建条目');
-      fireEvent.click(submitButton);
-
-      expect(mockOnSubmit).toHaveBeenCalledWith({
-        start_time: mockStartTime,
-        end_time: mockEndTime,
-        label: 'Test Entry',
-        color: '#2196F3',
-      });
-    }
   });
 
   it('does not submit when label is empty', () => {
@@ -182,9 +88,7 @@ describe('EntryDialog', () => {
       />
     );
 
-    const submitButton = screen.getByText('创建条目');
-    fireEvent.click(submitButton);
-
+    fireEvent.click(screen.getByRole('button', { name: '创建条目' }));
     expect(mockOnSubmit).not.toHaveBeenCalled();
   });
 
@@ -198,21 +102,20 @@ describe('EntryDialog', () => {
       />
     );
 
-    const labelInput = screen.getByPlaceholderText('你刚刚在做什么？');
-    fireEvent.change(labelInput, { target: { value: '  Test Entry  ' } });
-
-    const submitButton = screen.getByText('创建条目');
-    fireEvent.click(submitButton);
+    fireEvent.change(screen.getByPlaceholderText('你刚刚在做什么？'), {
+      target: { value: '  Test Entry  ' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '创建条目' }));
 
     expect(mockOnSubmit).toHaveBeenCalledWith({
       start_time: mockStartTime,
       end_time: mockEndTime,
       label: 'Test Entry',
-      color: '#4CAF50',
+      category_id: undefined,
     });
   });
 
-  it('renders all color options', () => {
+  it('calls onCancel when cancel button is clicked', () => {
     renderWithQueryClient(
       <EntryDialog
         startTime={mockStartTime}
@@ -222,8 +125,8 @@ describe('EntryDialog', () => {
       />
     );
 
-    // Check that all color buttons are rendered
-    const colorButtons = screen.getAllByRole('button');
-    expect(colorButtons.length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('button', { name: '取消' }));
+    expect(mockOnCancel).toHaveBeenCalled();
   });
 });
+

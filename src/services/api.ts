@@ -43,11 +43,23 @@ export interface ScreenshotInfo {
   placeholder?: string;
 }
 
+export interface ScreenshotSettings {
+  quality: number;
+  max_width: number;
+  max_file_kb: number;
+  storage_dir?: string;
+}
+
 export interface SearchResult {
   type: 'time_entry' | 'window_activity';
   timestamp: number;
   title: string;
   process_name?: string;
+}
+
+export interface ProcessSample {
+  timestamp: number;
+  process_name: string;
 }
 
 export interface ExportData {
@@ -90,6 +102,18 @@ export const api = {
   // Screenshots
   getScreenshotForTime: (timestamp: number): Promise<ScreenshotInfo> =>
     invoke('get_screenshot_for_time', { timestamp }),
+
+  getScreenshotTimestampsForDay: (date: number): Promise<number[]> =>
+    invoke('get_screenshot_timestamps_for_day', { date }),
+
+  getProcessSamplesForDay: (date: number): Promise<ProcessSample[]> =>
+    invoke('get_process_samples_for_day', { date }),
+
+  getScreenshotSettings: (): Promise<ScreenshotSettings> =>
+    invoke('get_screenshot_settings_cmd'),
+
+  updateScreenshotSettings: (settings: ScreenshotSettings): Promise<ScreenshotSettings> =>
+    invoke('update_screenshot_settings_cmd', { settings }),
 
   // Search
   searchActivities: (query: string): Promise<SearchResult[]> =>

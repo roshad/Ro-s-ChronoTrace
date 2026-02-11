@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { TimeEntry, TimeEntryUpdate } from '../../services/api';
 import { CategorySelector } from './CategorySelector';
 
@@ -18,7 +18,6 @@ export const EditEntryDialog: React.FC<EditEntryDialogProps> = ({
   onCancel,
 }) => {
   const [label, setLabel] = useState(entry.label);
-  const [color, setColor] = useState(entry.color || '#0d9488');
   const [categoryId, setCategoryId] = useState<number | undefined>(entry.category_id);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [startTimeInput, setStartTimeInput] = useState(formatTimeInput(entry.start_time));
@@ -78,7 +77,6 @@ export const EditEntryDialog: React.FC<EditEntryDialogProps> = ({
       start_time: parsedStartTime,
       end_time: parsedEndTime,
       label: label.trim(),
-      color,
       category_id: categoryId,
     });
   };
@@ -93,9 +91,19 @@ export const EditEntryDialog: React.FC<EditEntryDialogProps> = ({
             <div className="field">
               <label className="field-label">时间范围</label>
               <div className="toolbar-row">
-                <input type="time" value={startTimeInput} onChange={(e) => setStartTimeInput(e.target.value)} className="input" />
+                <input
+                  type="time"
+                  value={startTimeInput}
+                  onChange={(e) => setStartTimeInput(e.target.value)}
+                  className="input"
+                />
                 <span>-</span>
-                <input type="time" value={endTimeInput} onChange={(e) => setEndTimeInput(e.target.value)} className="input" />
+                <input
+                  type="time"
+                  value={endTimeInput}
+                  onChange={(e) => setEndTimeInput(e.target.value)}
+                  className="input"
+                />
               </div>
               <div className="field-help">
                 当前：{formatTime(entry.start_time)} - {formatTime(entry.end_time)} ({getDuration()})
@@ -118,27 +126,6 @@ export const EditEntryDialog: React.FC<EditEntryDialogProps> = ({
                 required
                 className="input"
               />
-            </div>
-
-            <div className="field">
-              <label className="field-label">颜色</label>
-              <div className="toolbar-row">
-                {['#0d9488', '#14b8a6', '#f97316', '#16a34a', '#6366f1', '#dc2626'].map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setColor(c)}
-                    style={{
-                      width: 34,
-                      height: 34,
-                      borderRadius: 8,
-                      border: color === c ? '2px solid var(--text)' : '1px solid var(--border-strong)',
-                      backgroundColor: c,
-                      cursor: 'pointer',
-                    }}
-                  />
-                ))}
-              </div>
             </div>
 
             <div className="dialog-actions" style={{ justifyContent: 'space-between' }}>

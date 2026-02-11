@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 use windows::{
+    core::PWSTR,
+    Win32::Foundation::CloseHandle,
     Win32::Foundation::HWND,
+    Win32::System::Threading::{OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION},
     Win32::UI::WindowsAndMessaging::{
         GetForegroundWindow, GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId,
     },
@@ -65,10 +68,36 @@ unsafe fn get_window_text(hwnd: HWND) -> Option<String> {
 
 /// Get the process name from a process ID
 unsafe fn get_process_name(process_id: u32) -> String {
-    // In a real implementation, you would use OpenProcess, GetModuleBaseNameW, etc.
-    // For MVP, we'll return a placeholder
-    // TODO: Implement proper process name retrieval
-    format!("process_{}.exe", process_id)
+    if process_id == 0 {
+        return "unknown.exe".to_string();
+    }
+
+    let process_handle = match OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, process_id) {
+        Ok(handle) => handle,
+        Err(_) => return "unknown.exe".to_string(),
+    };
+
+    let mut buffer = vec![0u16; 1024];
+    let mut size = buffer.len() as u32;
+    let result = QueryFullProcessImageNameW(
+        process_handle,
+        PROCESS_NAME_WIN32,
+        PWSTR(buffer.as_mut_ptr()),
+        &mut size,
+    );
+
+    let _ = CloseHandle(process_handle);
+
+    if result.is_err() || size == 0 {
+        return "unknown.exe".to_string();
+    }
+
+    let full_path = String::from_utf16_lossy(&buffer[..size as usize]);
+    std::path::Path::new(&full_path)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .map(|name| name.to_string())
+        .unwrap_or_else(|| "unknown.exe".to_string())
 }
 
 #[cfg(test)]

@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "identifier": "com.digitaldiary.app",
   "build": {
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "node ./scripts/start-vite-if-needed.mjs",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist"
@@ -27,5 +27,9 @@
     "active": true,
     "targets": "all"
   },
-  "plugins": {}
+  "plugins": {
+    "shell": {
+      "open": "^((mailto:|tel:|https?://).+|file://.+|[a-zA-Z]:\\\\\\\\.+)$"
+    }
+  }
 }

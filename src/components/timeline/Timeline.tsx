@@ -1,28 +1,47 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api, TimeEntry } from '../../services/api';
+
+export interface ProcessRun {
+  startTime: number;
+  endTime: number;
+  processName: string;
+  color: string;
+}
 
 interface TimelineProps {
   date: Date;
   timeEntries: TimeEntry[];
-  onHover?: (timestamp: number) => void;
+  screenshotTimestamps?: number[];
+  processRuns?: ProcessRun[];
+  onHover?: (payload: { timestamp: number; clientX: number; clientY: number }) => void;
   onHoverEnd?: () => void;
   onDragSelect?: (start: number, end: number) => void;
   onEntryClick?: (entry: TimeEntry) => void;
+  onProcessBarHover?: (payload: { timestamp: number; clientX: number; clientY: number }) => void;
+  onProcessBarLeave?: () => void;
+  onProcessBarClick?: (payload: { timestamp: number; clientX: number; clientY: number }) => void;
 }
 
 export const Timeline: React.FC<TimelineProps> = React.memo(({
   date,
   timeEntries,
+  screenshotTimestamps = [],
+  processRuns = [],
   onHover,
   onHoverEnd,
   onDragSelect,
   onEntryClick,
+  onProcessBarHover,
+  onProcessBarLeave,
+  onProcessBarClick,
 }) => {
   const HOURS_IN_DAY = 24;
   const MIN_VISIBLE_HOURS = 4;
   const MAX_VISIBLE_HOURS = 24;
-  const height = 100;
+  const height = 120;
+  const PROCESS_BAR_Y = 102;
+  const PROCESS_BAR_HEIGHT = 10;
   const dayStart = new Date(date).setHours(0, 0, 0, 0);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -89,6 +108,10 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
 
   const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    if (y >= PROCESS_BAR_Y) {
+      return;
+    }
     const x = e.clientX - rect.left;
     const timestamp = xToTime(x);
     setDragStart(timestamp);
@@ -98,12 +121,20 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
     const timestamp = xToTime(x);
     const isDragging = dragStart !== null;
 
+    if (y >= PROCESS_BAR_Y) {
+      if (onProcessBarHover) {
+        onProcessBarHover({ timestamp, clientX: e.clientX, clientY: e.clientY });
+      }
+      return;
+    }
+
     // Hover preview
     if (onHover && !isDragging) {
-      onHover(timestamp);
+      onHover({ timestamp, clientX: e.clientX, clientY: e.clientY });
     }
 
     // Drag selection
@@ -128,6 +159,9 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
     handleMouseUp();
     if (onHoverEnd) {
       onHoverEnd();
+    }
+    if (onProcessBarLeave) {
+      onProcessBarLeave();
     }
   };
 
@@ -245,6 +279,83 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
     });
   }, [timeEntries, onEntryClick, categoryMap, timelineWidth]);
 
+  const processBarBlocks = useMemo(() => {
+    return processRuns
+      .filter((run) => run.endTime > dayStart && run.startTime < dayStart + 86400000)
+      .map((run, index) => {
+        const start = Math.max(run.startTime, dayStart);
+        const end = Math.min(run.endTime, dayStart + 86400000);
+        const x = timeToX(start);
+        const blockWidth = Math.max(timeToX(end) - x, 1);
+
+        return (
+          <rect
+            key={`process-run-${index}-${run.startTime}-${run.processName}`}
+            x={x}
+            y={PROCESS_BAR_Y}
+            width={blockWidth}
+            height={PROCESS_BAR_HEIGHT}
+            fill={run.color}
+            className="process-bar-segment"
+            onMouseMove={(e) => {
+              if (onProcessBarHover) {
+                onProcessBarHover({
+                  timestamp: xToTime(e.clientX - (e.currentTarget.ownerSVGElement?.getBoundingClientRect().left ?? 0)),
+                  clientX: e.clientX,
+                  clientY: e.clientY,
+                });
+              }
+            }}
+            onMouseLeave={() => {
+              if (onProcessBarLeave) {
+                onProcessBarLeave();
+              }
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onProcessBarClick) {
+                const svgLeft = e.currentTarget.ownerSVGElement?.getBoundingClientRect().left ?? 0;
+                onProcessBarClick({
+                  timestamp: xToTime(e.clientX - svgLeft),
+                  clientX: e.clientX,
+                  clientY: e.clientY,
+                });
+              }
+            }}
+          />
+        );
+      });
+  }, [processRuns, dayStart, timelineWidth, onProcessBarHover, onProcessBarLeave, onProcessBarClick]);
+
+  const screenshotMarkers = useMemo(() => {
+    return screenshotTimestamps
+      .filter((timestamp) => timestamp >= dayStart && timestamp < dayStart + 86400000)
+      .map((timestamp, index) => {
+        const x = timeToX(timestamp);
+        return (
+          <circle
+            key={`shot-${timestamp}-${index}`}
+            className="screenshot-marker"
+            cx={x}
+            cy={88}
+            r={3}
+            fill="var(--accent)"
+            stroke="var(--surface)"
+            strokeWidth={1}
+            onMouseEnter={(e) => {
+              if (onHover) {
+                onHover({
+                  timestamp,
+                  clientX: e.clientX,
+                  clientY: e.clientY,
+                });
+              }
+            }}
+          />
+        );
+      });
+  }, [screenshotTimestamps, dayStart, timelineWidth, onHover]);
+
   // Render drag selection
   const dragSelection = useMemo(() => {
     if (dragStart === null || dragEnd === null) return null;
@@ -342,8 +453,14 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
             {/* Time blocks */}
             {timeBlocks}
 
+            {/* Screenshot markers */}
+            {screenshotMarkers}
+
             {/* Drag selection */}
             {dragSelection}
+
+            {/* Process status bar */}
+            {processBarBlocks}
           </svg>
         </div>
       </div>
@@ -352,3 +469,5 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
 });
 
 Timeline.displayName = 'Timeline';
+
+

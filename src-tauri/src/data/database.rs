@@ -34,6 +34,20 @@ pub fn run_migrations(conn: &Connection) -> Result<(), String> {
             .map_err(|e| format!("Failed to run V2 migrations: {}", e))?;
     }
 
+    let process_samples_table_count: i32 = conn
+        .query_row(
+            "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='process_samples'",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|e| format!("Failed to check for process_samples table: {}", e))?;
+    let has_process_samples = process_samples_table_count == 1;
+
+    if !has_process_samples {
+        conn.execute_batch(include_str!("migrations/V3__process_samples.sql"))
+            .map_err(|e| format!("Failed to run V3 migrations: {}", e))?;
+    }
+
     Ok(())
 }
 

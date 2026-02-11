@@ -2,6 +2,7 @@ pub mod categories;
 pub mod database;
 pub mod export;
 pub mod idle;
+pub mod process_samples;
 pub mod screenshot;
 pub mod search;
 pub mod time_entries;
@@ -10,6 +11,7 @@ pub mod window_activity;
 // Re-export internal functions for use within the crate
 pub use screenshot::{get_screenshot_near_time, insert_screenshot};
 pub use window_activity::insert_window_activities_batch;
+pub use process_samples::{delete_process_samples_before, insert_process_sample};
 
 use once_cell::sync::Lazy;
 use rusqlite::Connection;
@@ -113,5 +115,23 @@ pub async fn get_idle_periods(date: i64) -> AppResult<Vec<crate::types::IdlePeri
         let start_of_day = date;
         let end_of_day = date + 86400000;
         idle::get_idle_periods_for_day(conn, start_of_day, end_of_day)
+    })
+}
+
+#[tauri::command]
+pub async fn get_screenshot_timestamps_for_day(date: i64) -> AppResult<Vec<i64>> {
+    with_db(|conn| {
+        let start_of_day = date;
+        let end_of_day = date + 86400000;
+        screenshot::get_screenshot_timestamps_for_day(conn, start_of_day, end_of_day)
+    })
+}
+
+#[tauri::command]
+pub async fn get_process_samples_for_day(date: i64) -> AppResult<Vec<crate::types::ProcessSample>> {
+    with_db(|conn| {
+        let start_of_day = date;
+        let end_of_day = date + 86400000;
+        process_samples::get_process_samples_for_day(conn, start_of_day, end_of_day)
     })
 }
