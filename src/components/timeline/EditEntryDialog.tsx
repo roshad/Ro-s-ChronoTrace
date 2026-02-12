@@ -77,7 +77,7 @@ export const EditEntryDialog: React.FC<EditEntryDialogProps> = ({
       start_time: parsedStartTime,
       end_time: parsedEndTime,
       label: label.trim(),
-      category_id: categoryId,
+      category_id: categoryId ?? null,
     });
   };
 

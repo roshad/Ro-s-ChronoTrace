@@ -105,17 +105,16 @@ pub async fn create_category(
 }
 
 #[tauri::command]
-pub async fn delete_category(id: i64) -> AppResult<()> {
-    with_db(|conn| categories::delete_category_impl(conn, id))
+pub async fn update_category(
+    id: i64,
+    category: crate::types::CategoryInput,
+) -> AppResult<crate::types::Category> {
+    with_db(|conn| categories::update_category_impl(conn, id, &category))
 }
 
 #[tauri::command]
-pub async fn get_idle_periods(date: i64) -> AppResult<Vec<crate::types::IdlePeriod>> {
-    with_db(|conn| {
-        let start_of_day = date;
-        let end_of_day = date + 86400000;
-        idle::get_idle_periods_for_day(conn, start_of_day, end_of_day)
-    })
+pub async fn delete_category(id: i64) -> AppResult<()> {
+    with_db(|conn| categories::delete_category_impl(conn, id))
 }
 
 #[tauri::command]

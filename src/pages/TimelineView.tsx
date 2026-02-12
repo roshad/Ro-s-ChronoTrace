@@ -6,8 +6,7 @@ import { ProcessRun, Timeline } from '../components/timeline/Timeline';
 import { EntryDialog } from '../components/timeline/EntryDialog';
 import { EditEntryDialog } from '../components/timeline/EditEntryDialog';
 import { Navigation } from '../components/timeline/Navigation';
-import { ScreenshotPreview } from '../components/timeline/ScreenshotPreview';
-import { ProcessUsageTooltip } from '../components/timeline/ProcessUsageTooltip';
+import { HoverInsightsTooltip } from '../components/timeline/HoverInsightsTooltip';
 import { TodaySearchBar } from '../components/search/TodaySearchBar';
 import { ExportButton } from '../components/export/ExportButton';
 import { StatusIndicator } from '../components/capture/StatusIndicator';
@@ -20,12 +19,14 @@ export const TimelineView: React.FC = () => {
   const [showDialog, setShowDialog] = useState(false);
   const [dialogRange, setDialogRange] = useState<{ start: number; end: number } | null>(null);
   const [dialogInitialLabel, setDialogInitialLabel] = useState('');
-  const [hoveredScreenshot, setHoveredScreenshot] = useState<{ filePath?: string; dataUrl?: string; timestamp?: number } | null>(null);
-  const [hoverPoint, setHoverPoint] = useState<{ x: number; y: number } | null>(null);
-  const [processTooltip, setProcessTooltip] = useState<{
+  const [hoverCard, setHoverCard] = useState<{
     point: { x: number; y: number };
+    timestamp: number;
     rangeStart: number;
     rangeEnd: number;
+    entryLabel?: string;
+    categoryName?: string;
+    screenshot?: { filePath?: string; dataUrl?: string };
     items: Array<{ processName: string; seconds: number; percent: number }>;
   } | null>(null);
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
@@ -39,6 +40,7 @@ export const TimelineView: React.FC = () => {
   });
 
   const hoverRequestIdRef = useRef(0);
+  const hoverAnchorYRef = useRef<number | null>(null);
   const hoverDebounceTimerRef = useRef<number | null>(null);
   const tooltipHideTimerRef = useRef<number | null>(null);
   const isTimelineHoveringRef = useRef(false);
@@ -50,6 +52,11 @@ export const TimelineView: React.FC = () => {
   const todayStart = new Date().setHours(0, 0, 0, 0);
   const isSelectedDayToday = dayTimestamp === todayStart;
 
+  const invalidateEntryDerivedQueries = React.useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['timeEntries', dayTimestamp] });
+    queryClient.invalidateQueries({ queryKey: ['statsEntries'] });
+  }, [queryClient, dayTimestamp]);
+
   const { data: timeEntries = [], isLoading } = useQuery({
     queryKey: ['timeEntries', dayTimestamp],
     queryFn: () => api.getTimeEntries(dayTimestamp),
@@ -58,6 +65,11 @@ export const TimelineView: React.FC = () => {
   const { data: screenshotSettings } = useQuery({
     queryKey: ['screenshotSettings'],
     queryFn: () => api.getScreenshotSettings(),
+  });
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => api.getCategories(),
   });
 
   const { data: screenshotTimestamps = [] } = useQuery({
@@ -79,6 +91,12 @@ export const TimelineView: React.FC = () => {
     () => [...processSamples].sort((a, b) => a.timestamp - b.timestamp),
     [processSamples]
   );
+
+  const categoryNameMap = React.useMemo(() => {
+    const map = new Map<number, string>();
+    categories.forEach((c) => map.set(c.id, c.name));
+    return map;
+  }, [categories]);
 
   const aggregateProcessUsage = React.useCallback((start: number, end: number) => {
     if (end <= start) {
@@ -186,7 +204,7 @@ export const TimelineView: React.FC = () => {
   const createMutation = useMutation({
     mutationFn: (entry: TimeEntryInput) => api.createTimeEntry(entry),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['timeEntries', dayTimestamp] });
+      invalidateEntryDerivedQueries();
       setShowDialog(false);
       setDialogRange(null);
       setDialogInitialLabel('');
@@ -200,7 +218,7 @@ export const TimelineView: React.FC = () => {
   const updateMutation = useMutation({
     mutationFn: ({ id, updates }: { id: number; updates: TimeEntryUpdate }) => api.updateTimeEntry(id, updates),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['timeEntries', dayTimestamp] });
+      invalidateEntryDerivedQueries();
       setEditingEntry(null);
     },
     onError: (error) => {
@@ -212,7 +230,7 @@ export const TimelineView: React.FC = () => {
   const timerUpdateMutation = useMutation({
     mutationFn: ({ id, updates }: { id: number; updates: TimeEntryUpdate }) => api.updateTimeEntry(id, updates),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['timeEntries', dayTimestamp] });
+      invalidateEntryDerivedQueries();
     },
     onError: (error) => {
       console.error('Failed to update running timer entry:', error);
@@ -222,7 +240,7 @@ export const TimelineView: React.FC = () => {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.deleteTimeEntry(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['timeEntries', dayTimestamp] });
+      invalidateEntryDerivedQueries();
       setEditingEntry(null);
     },
     onError: (error) => {
@@ -316,6 +334,20 @@ export const TimelineView: React.FC = () => {
     });
   };
 
+  const handleUpdateTimerLabel = async (entryId: number, label: string): Promise<void> => {
+    await timerUpdateMutation.mutateAsync({
+      id: entryId,
+      updates: { label },
+    });
+  };
+
+  const handleUpdateTimerCategory = async (entryId: number, categoryId?: number): Promise<void> => {
+    await timerUpdateMutation.mutateAsync({
+      id: entryId,
+      updates: { category_id: categoryId ?? null },
+    });
+  };
+
   const findTimeEntryAt = (timestamp: number) => (
     timeEntries.find((entry) => timestamp >= entry.start_time && timestamp < entry.end_time)
   );
@@ -323,6 +355,20 @@ export const TimelineView: React.FC = () => {
   const findRunAt = (timestamp: number) => (
     processRuns.find((run) => timestamp >= run.startTime && timestamp < run.endTime)
   );
+
+  const resolvedHoverEntry = React.useMemo(() => {
+    if (!hoverCard) {
+      return undefined;
+    }
+    return timeEntries.find(
+      (entry) => hoverCard.timestamp >= entry.start_time && hoverCard.timestamp < entry.end_time
+    );
+  }, [hoverCard, timeEntries]);
+
+  const resolvedHoverLabel = resolvedHoverEntry?.label ?? hoverCard?.entryLabel;
+  const resolvedHoverCategoryName = resolvedHoverEntry
+    ? (resolvedHoverEntry.category_id != null ? categoryNameMap.get(resolvedHoverEntry.category_id) : undefined)
+    : hoverCard?.categoryName;
 
   const computeTopProcesses = (start: number, end: number) => {
     const buckets = aggregateProcessUsage(start, end);
@@ -368,35 +414,12 @@ export const TimelineView: React.FC = () => {
     return null;
   };
 
-  const getOverlayPosition = (point: { x: number; y: number }, width: number, height: number) => {
-    const gap = 14;
-    const margin = 10;
-    return {
-      x: Math.max(margin, Math.min(window.innerWidth - width - margin, point.x + gap)),
-      y: Math.max(margin, Math.min(window.innerHeight - height - margin, point.y + gap)),
-    };
-  };
-
   const handleProcessBarHover = (payload: { timestamp: number; clientX: number; clientY: number }) => {
-    const entry = findTimeEntryAt(payload.timestamp);
-    const run = findRunAt(payload.timestamp);
-    if (!entry && !run) {
-      setProcessTooltip(null);
-      return;
-    }
-    const rangeStart = entry ? entry.start_time : run!.startTime;
-    const rangeEnd = entry ? entry.end_time : run!.endTime;
-    const items = computeTopProcesses(rangeStart, rangeEnd);
-    setProcessTooltip({
-      point: { x: payload.clientX, y: payload.clientY },
-      rangeStart,
-      rangeEnd,
-      items,
-    });
+    handleHover(payload);
   };
 
   const handleProcessBarLeave = () => {
-    setProcessTooltip(null);
+    // no-op: keep unified hover tooltip behavior consistent with timeline hover
   };
 
   const handleProcessBarClick = (payload: { timestamp: number; clientX: number; clientY: number }) => {
@@ -435,48 +458,80 @@ export const TimelineView: React.FC = () => {
       return;
     }
 
-    setHoverPoint((prev) => ({
-      x: payload.clientX,
-      y: prev?.y ?? payload.clientY,
-    }));
-
     if (hoverDebounceTimerRef.current) {
       window.clearTimeout(hoverDebounceTimerRef.current);
     }
 
     hoverDebounceTimerRef.current = window.setTimeout(async () => {
       const requestId = ++hoverRequestIdRef.current;
+      const entry = findTimeEntryAt(payload.timestamp);
+      const run = findRunAt(payload.timestamp);
+      if (!entry && !run) {
+        setHoverCard(null);
+        hoverAnchorYRef.current = null;
+        setIsTooltipFading(false);
+        return;
+      }
+      const safeRun = run!;
+      const rangeStart = entry
+        ? entry.start_time
+        : safeRun.startTime;
+      const rangeEnd = entry
+        ? entry.end_time
+        : safeRun.endTime;
+      const entryLabel = entry?.label;
+      const categoryName = entry?.category_id != null
+        ? categoryNameMap.get(entry.category_id)
+        : undefined;
+      const items = computeTopProcesses(rangeStart, rangeEnd);
 
       try {
         const screenshot = await api.getScreenshotForTime(payload.timestamp);
         if (requestId !== hoverRequestIdRef.current || isTooltipHoveringRef.current) {
           return;
         }
-
-        if (screenshot.file_path || screenshot.data_url) {
-          setHoveredScreenshot({
+        setHoverCard({
+          point: {
+            x: payload.clientX,
+            y: hoverAnchorYRef.current ?? payload.clientY,
+          },
+          timestamp: payload.timestamp,
+          rangeStart,
+          rangeEnd,
+          entryLabel,
+          categoryName,
+          screenshot: {
             filePath: screenshot.file_path,
             dataUrl: screenshot.data_url,
-            timestamp: payload.timestamp,
-          });
-          setHoverPoint((prev) => ({
-            x: payload.clientX,
-            y: prev?.y ?? payload.clientY,
-          }));
-          setIsTooltipFading(false);
-        } else {
-          setHoveredScreenshot(null);
-          setHoverPoint(null);
-          setIsTooltipFading(false);
+          },
+          items,
+        });
+        if (hoverAnchorYRef.current === null) {
+          hoverAnchorYRef.current = payload.clientY;
         }
+        setIsTooltipFading(false);
       } catch (error) {
         if (requestId !== hoverRequestIdRef.current || isTooltipHoveringRef.current) {
           return;
         }
 
         console.error('Failed to fetch screenshot:', error);
-        setHoveredScreenshot(null);
-        setHoverPoint(null);
+        setHoverCard({
+          point: {
+            x: payload.clientX,
+            y: hoverAnchorYRef.current ?? payload.clientY,
+          },
+          timestamp: payload.timestamp,
+          rangeStart,
+          rangeEnd,
+          entryLabel,
+          categoryName,
+          screenshot: undefined,
+          items,
+        });
+        if (hoverAnchorYRef.current === null) {
+          hoverAnchorYRef.current = payload.clientY;
+        }
         setIsTooltipFading(false);
       }
     }, 120);
@@ -488,8 +543,8 @@ export const TimelineView: React.FC = () => {
       window.clearTimeout(tooltipHideTimerRef.current);
     }
     tooltipHideTimerRef.current = window.setTimeout(() => {
-      setHoveredScreenshot(null);
-      setHoverPoint(null);
+      setHoverCard(null);
+      hoverAnchorYRef.current = null;
       setIsTooltipFading(false);
       tooltipHideTimerRef.current = null;
     }, 500);
@@ -502,7 +557,7 @@ export const TimelineView: React.FC = () => {
       window.clearTimeout(hoverDebounceTimerRef.current);
       hoverDebounceTimerRef.current = null;
     }
-    if (!isTooltipHoveringRef.current && hoveredScreenshot) {
+    if (!isTooltipHoveringRef.current && hoverCard) {
       startTooltipHideTimer();
     }
   };
@@ -518,7 +573,7 @@ export const TimelineView: React.FC = () => {
 
   const handleTooltipMouseLeave = () => {
     isTooltipHoveringRef.current = false;
-    if (!isTimelineHoveringRef.current && hoveredScreenshot) {
+    if (!isTimelineHoveringRef.current && hoverCard) {
       startTooltipHideTimer();
     }
   };
@@ -532,13 +587,13 @@ export const TimelineView: React.FC = () => {
   };
 
   const handleOpenHoveredScreenshot = async () => {
-    if (!hoveredScreenshot?.filePath) {
+    if (!hoverCard?.screenshot?.filePath) {
       alert('当前截图无法直接打开原图文件。');
       return;
     }
 
     try {
-      const absolutePath = await resolveScreenshotPath(hoveredScreenshot.filePath);
+      const absolutePath = await resolveScreenshotPath(hoverCard.screenshot.filePath);
       const normalizedPath = absolutePath.replace(/\\/g, '/');
       const fileUrl = /^[a-zA-Z]:\//.test(normalizedPath)
         ? `file:///${normalizedPath}`
@@ -675,7 +730,12 @@ export const TimelineView: React.FC = () => {
         <div className="panel" style={{ textAlign: 'center', padding: '40px' }}>加载中...</div>
       ) : (
         <>
-          <TimerInput onStart={handleStartTimer} onStop={handleStopTimer} />
+          <TimerInput
+            onStart={handleStartTimer}
+            onStop={handleStopTimer}
+            onUpdateLabel={handleUpdateTimerLabel}
+            onUpdateCategory={handleUpdateTimerCategory}
+          />
           <Timeline
             date={selectedDate}
             timeEntries={timeEntries}
@@ -690,26 +750,21 @@ export const TimelineView: React.FC = () => {
             onProcessBarClick={handleProcessBarClick}
           />
 
-          {hoveredScreenshot && hoverPoint && (
-            <ScreenshotPreview
-              variant="tooltip"
-              position={getTooltipPosition(hoverPoint)}
-              filePath={hoveredScreenshot.filePath}
-              dataUrl={hoveredScreenshot.dataUrl}
-              timestamp={hoveredScreenshot.timestamp}
+          {hoverCard && (
+            <HoverInsightsTooltip
+              position={getTooltipPosition(hoverCard.point)}
+              timestamp={hoverCard.timestamp}
+              rangeStart={hoverCard.rangeStart}
+              rangeEnd={hoverCard.rangeEnd}
+              entryLabel={resolvedHoverLabel}
+              categoryName={resolvedHoverCategoryName}
+              filePath={hoverCard.screenshot?.filePath}
+              dataUrl={hoverCard.screenshot?.dataUrl}
+              processItems={hoverCard.items}
               onMouseEnter={handleTooltipMouseEnter}
               onMouseLeave={handleTooltipMouseLeave}
               onImageClick={handleOpenHoveredScreenshot}
               isFading={isTooltipFading}
-            />
-          )}
-
-          {processTooltip && (
-            <ProcessUsageTooltip
-              position={getOverlayPosition(processTooltip.point, 360, 220)}
-              rangeStart={processTooltip.rangeStart}
-              rangeEnd={processTooltip.rangeEnd}
-              items={processTooltip.items}
             />
           )}
 

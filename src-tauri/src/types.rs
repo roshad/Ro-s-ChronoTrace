@@ -26,7 +26,7 @@ pub struct TimeEntryUpdate {
     pub end_time: Option<i64>,
     pub label: Option<String>,
     pub color: Option<String>,
-    pub category_id: Option<i64>,
+    pub category_id: Option<Option<i64>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]

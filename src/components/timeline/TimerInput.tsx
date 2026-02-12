@@ -1,18 +1,22 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useTimelineStore } from '../../services/store';
 import { CategorySelector } from './CategorySelector';
 
 interface TimerInputProps {
   onStart: (label: string, startTime: number, categoryId?: number) => Promise<number>;
   onStop: (entryId: number, endTime: number) => Promise<void>;
+  onUpdateLabel: (entryId: number, label: string) => Promise<void>;
+  onUpdateCategory: (entryId: number, categoryId?: number) => Promise<void>;
 }
 
-export const TimerInput: React.FC<TimerInputProps> = ({ onStart, onStop }) => {
-  const { activeTimer, startTimer, stopTimer } = useTimelineStore();
+export const TimerInput: React.FC<TimerInputProps> = ({ onStart, onStop, onUpdateLabel, onUpdateCategory }) => {
+  const { activeTimer, startTimer, updateActiveTimerLabel, updateActiveTimerCategory, stopTimer } = useTimelineStore();
   const [label, setLabel] = useState('');
   const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
   const [elapsed, setElapsed] = useState(0);
   const [loading, setLoading] = useState(false);
+  const saveLabelTimerRef = useRef<number | null>(null);
+  const saveCategoryTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     let interval: number | undefined;
@@ -29,6 +33,105 @@ export const TimerInput: React.FC<TimerInputProps> = ({ onStart, onStop }) => {
     return () => clearInterval(interval);
   }, [activeTimer]);
 
+  const commitLabelUpdate = async () => {
+    if (!activeTimer) {
+      return;
+    }
+
+    const nextLabel = label.trim();
+    if (!nextLabel) {
+      setLabel(activeTimer.label);
+      return;
+    }
+
+    if (nextLabel === activeTimer.label) {
+      return;
+    }
+
+    await onUpdateLabel(activeTimer.entryId, nextLabel);
+    updateActiveTimerLabel(nextLabel);
+  };
+
+  const commitCategoryUpdate = async () => {
+    if (!activeTimer) {
+      return;
+    }
+
+    const nextCategory = categoryId ?? undefined;
+    const currentCategory = activeTimer.categoryId ?? undefined;
+    if (nextCategory === currentCategory) {
+      return;
+    }
+
+    await onUpdateCategory(activeTimer.entryId, nextCategory);
+    updateActiveTimerCategory(nextCategory);
+  };
+
+  useEffect(() => {
+    if (!activeTimer) {
+      return;
+    }
+
+    if (saveLabelTimerRef.current) {
+      window.clearTimeout(saveLabelTimerRef.current);
+      saveLabelTimerRef.current = null;
+    }
+
+    const nextLabel = label.trim();
+    if (!nextLabel || nextLabel === activeTimer.label) {
+      return;
+    }
+
+    saveLabelTimerRef.current = window.setTimeout(async () => {
+      try {
+        await onUpdateLabel(activeTimer.entryId, nextLabel);
+        updateActiveTimerLabel(nextLabel);
+      } catch (error) {
+        console.error('Failed to update running timer label:', error);
+      }
+    }, 600);
+
+    return () => {
+      if (saveLabelTimerRef.current) {
+        window.clearTimeout(saveLabelTimerRef.current);
+        saveLabelTimerRef.current = null;
+      }
+    };
+  }, [activeTimer?.entryId, activeTimer?.label, label, onUpdateLabel, updateActiveTimerLabel]);
+
+  useEffect(() => {
+    if (!activeTimer) {
+      return;
+    }
+
+    if (saveCategoryTimerRef.current) {
+      window.clearTimeout(saveCategoryTimerRef.current);
+      saveCategoryTimerRef.current = null;
+    }
+
+    const nextCategory = categoryId ?? undefined;
+    const currentCategory = activeTimer.categoryId ?? undefined;
+    if (nextCategory === currentCategory) {
+      return;
+    }
+
+    saveCategoryTimerRef.current = window.setTimeout(async () => {
+      try {
+        await onUpdateCategory(activeTimer.entryId, nextCategory);
+        updateActiveTimerCategory(nextCategory);
+      } catch (error) {
+        console.error('Failed to update running timer category:', error);
+      }
+    }, 300);
+
+    return () => {
+      if (saveCategoryTimerRef.current) {
+        window.clearTimeout(saveCategoryTimerRef.current);
+        saveCategoryTimerRef.current = null;
+      }
+    };
+  }, [activeTimer?.entryId, activeTimer?.categoryId, categoryId, onUpdateCategory, updateActiveTimerCategory]);
+
   const handleStartStop = async () => {
     if (loading) {
       return;
@@ -37,6 +140,8 @@ export const TimerInput: React.FC<TimerInputProps> = ({ onStart, onStop }) => {
     if (activeTimer) {
       try {
         setLoading(true);
+        await commitLabelUpdate();
+        await commitCategoryUpdate();
         const endTime = Date.now();
         await onStop(activeTimer.entryId, endTime);
         stopTimer();
@@ -52,11 +157,12 @@ export const TimerInput: React.FC<TimerInputProps> = ({ onStart, onStop }) => {
       try {
         setLoading(true);
         const startTime = Date.now();
-        const entryId = await onStart(label.trim(), startTime, categoryId);
+        const nextLabel = label.trim();
+        const entryId = await onStart(nextLabel, startTime, categoryId);
         startTimer({
           entryId,
           startTime,
-          label: label.trim(),
+          label: nextLabel,
           categoryId,
         });
       } catch (error) {
@@ -85,10 +191,25 @@ export const TimerInput: React.FC<TimerInputProps> = ({ onStart, onStop }) => {
         placeholder="你正在做什么？"
         value={label}
         onChange={(e) => setLabel(e.target.value)}
-        disabled={!!activeTimer || loading}
+        disabled={loading}
         className="input timer-label-input"
+        onBlur={() => {
+          if (activeTimer) {
+            void commitLabelUpdate();
+          }
+        }}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') handleStartStop();
+          if (e.key !== 'Enter') {
+            return;
+          }
+
+          if (activeTimer) {
+            e.preventDefault();
+            void commitLabelUpdate();
+            return;
+          }
+
+          void handleStartStop();
         }}
       />
 

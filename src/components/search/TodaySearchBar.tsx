@@ -81,6 +81,9 @@ export const TodaySearchBar: React.FC<RangeSearchBarProps> = ({ date }) => {
 
       const key = entry.category_id ? `category-${entry.category_id}` : 'uncategorized';
       const category = entry.category_id ? categories.find((c) => c.id === entry.category_id) : undefined;
+      const resolvedColor = entry.category_id
+        ? (category?.color ?? '#6b7280')
+        : '#6b7280';
       const existing = totals.get(key);
       if (existing) {
         existing.durationMs += durationMs;
@@ -88,7 +91,7 @@ export const TodaySearchBar: React.FC<RangeSearchBarProps> = ({ date }) => {
         totals.set(key, {
           key,
           label: category?.name ?? (entry.category_id ? '未知分类' : '未分类'),
-          color: category?.color ?? entry.color ?? '#6b7280',
+          color: resolvedColor,
           durationMs,
         });
       }

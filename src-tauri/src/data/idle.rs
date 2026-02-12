@@ -2,17 +2,6 @@ use crate::data::AppResult;
 use crate::types::{IdlePeriod, IdlePeriodResolution};
 use rusqlite::Connection;
 
-/// Insert an idle period into the database
-pub fn insert_idle_period(conn: &Connection, start_time: i64, end_time: i64) -> AppResult<i64> {
-    conn.execute(
-        "INSERT INTO idle_periods (start_time, end_time, resolution) VALUES (?1, ?2, NULL)",
-        rusqlite::params![start_time, end_time],
-    )
-    .map_err(|e| format!("Failed to insert idle period: {}", e))?;
-
-    Ok(conn.last_insert_rowid())
-}
-
 /// Update idle period resolution
 #[allow(dead_code)]
 pub fn update_idle_period_resolution(
@@ -48,36 +37,6 @@ pub fn get_idle_period(conn: &Connection, id: i64) -> AppResult<IdlePeriod> {
         .map_err(|e| format!("Failed to get idle period: {}", e))?;
 
     Ok(period)
-}
-
-/// Get all idle periods for a specific day
-pub fn get_idle_periods_for_day(
-    conn: &Connection,
-    day_start: i64,
-    day_end: i64,
-) -> AppResult<Vec<IdlePeriod>> {
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, start_time, end_time, resolution FROM idle_periods
-             WHERE start_time >= ?1 AND start_time < ?2
-             ORDER BY start_time",
-        )
-        .map_err(|e| format!("Failed to prepare query: {}", e))?;
-
-    let periods = stmt
-        .query_map(rusqlite::params![day_start, day_end], |row| {
-            Ok(IdlePeriod {
-                id: row.get(0)?,
-                start_time: row.get(1)?,
-                end_time: row.get(2)?,
-                resolution: row.get(3)?,
-            })
-        })
-        .map_err(|e| format!("Failed to query idle periods: {}", e))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| format!("Failed to collect idle periods: {}", e))?;
-
-    Ok(periods)
 }
 
 /// Resolve an idle period

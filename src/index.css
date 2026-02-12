@@ -334,6 +334,58 @@ select {
   padding: 4px 0;
 }
 
+.hover-insights-tooltip {
+  position: fixed;
+  z-index: 1300;
+  width: min(380px, calc(100vw - 20px));
+  padding: 12px;
+  pointer-events: none;
+  user-select: none;
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+
+.hover-insights-tooltip.is-fading {
+  opacity: 0;
+}
+
+.hover-insights-tooltip * {
+  pointer-events: none;
+  user-select: none;
+}
+
+.hover-insights-image-wrap {
+  margin-top: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #051f1d;
+  min-height: 150px;
+  max-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.hover-insights-image {
+  max-width: 100%;
+  max-height: 190px;
+  object-fit: contain;
+  cursor: pointer;
+}
+
+.hover-insights-section {
+  margin-top: 8px;
+}
+
+.hover-insights-interactive {
+  pointer-events: auto;
+}
+
+.hover-insights-interactive * {
+  pointer-events: auto;
+}
+
 .category-selector {
   position: relative;
 }
@@ -377,6 +429,13 @@ select {
   color: var(--text);
   cursor: pointer;
   text-align: left;
+}
+
+.category-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
 }
 
 .category-item:hover {

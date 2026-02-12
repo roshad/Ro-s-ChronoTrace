@@ -23,7 +23,7 @@ export interface TimeEntryUpdate {
   end_time?: number;
   label?: string;
   color?: string;
-  category_id?: number;
+  category_id?: number | null;
 }
 
 export interface Category {
@@ -132,6 +132,9 @@ export const api = {
 
   createCategory: (category: CategoryInput): Promise<Category> =>
     invoke('create_category', { category }),
+
+  updateCategory: (id: number, category: CategoryInput): Promise<Category> =>
+    invoke('update_category', { id, category }),
 
   deleteCategory: (id: number): Promise<void> =>
     invoke('delete_category', { id }),

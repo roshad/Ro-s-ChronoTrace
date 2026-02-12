@@ -38,9 +38,6 @@ fn main() {
         rt.block_on(start_process_samples_cleanup());
     });
 
-    // Start idle detection
-    idle::start_idle_detection();
-
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_fs::init())
@@ -53,8 +50,8 @@ fn main() {
             data::delete_time_entry,
             data::get_categories,
             data::create_category,
+            data::update_category,
             data::delete_category,
-            data::get_idle_periods,
             data::get_screenshot_timestamps_for_day,
             data::get_process_samples_for_day,
             data::search_activities_cmd,

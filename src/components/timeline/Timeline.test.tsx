@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Timeline } from './Timeline';
 import { api, TimeEntry } from '../../services/api';
@@ -228,5 +228,69 @@ describe('Timeline', () => {
     fireEvent.wheel(scrollContainer, { deltaY: -100, clientX: 200 });
 
     expect(screen.getByText('当前视野：24 小时')).toBeInTheDocument();
+  });
+
+  it('does not show drag selection ghost when mousedown on existing entry block', () => {
+    renderWithQueryClient(<Timeline date={mockDate} timeEntries={mockTimeEntries} />);
+
+    const firstEntryRect = document.querySelector('.time-entry-block rect');
+    expect(firstEntryRect).toBeTruthy();
+    if (!firstEntryRect) {
+      return;
+    }
+
+    fireEvent.mouseDown(firstEntryRect, {
+      clientX: 300,
+      clientY: 40,
+    });
+
+    const dragGhost = document.querySelector('rect[stroke-dasharray="5,5"]');
+    expect(dragGhost).toBeNull();
+  });
+
+  it('clips entry label text so it does not overflow block bounds', () => {
+    renderWithQueryClient(<Timeline date={mockDate} timeEntries={mockTimeEntries} />);
+
+    const label = screen.getByText('Work');
+    expect(label.tagName.toLowerCase()).toBe('text');
+    expect(label.getAttribute('clip-path')).toMatch(/^url\(#time-entry-label-clip-/);
+  });
+
+  it('uses category color as the single source when entry has category_id', async () => {
+    mockGetCategories.mockResolvedValue([
+      { id: 1, name: 'Focus', color: '#ff0000' },
+    ]);
+
+    const categorizedEntries: TimeEntry[] = [{
+      id: 3,
+      start_time: new Date('2026-01-28T16:00:00Z').getTime(),
+      end_time: new Date('2026-01-28T17:00:00Z').getTime(),
+      label: 'Categorized',
+      color: '#00ff00',
+      category_id: 1,
+    }];
+
+    renderWithQueryClient(<Timeline date={mockDate} timeEntries={categorizedEntries} />);
+
+    await waitFor(() => {
+      const entryRect = document.querySelector('.time-entry-block > rect');
+      expect(entryRect?.getAttribute('fill')).toBe('#ff0000');
+    });
+  });
+
+  it('renders uncategorized entry as gray even when entry.color exists', () => {
+    const uncategorizedEntries: TimeEntry[] = [{
+      id: 4,
+      start_time: new Date('2026-01-28T18:00:00Z').getTime(),
+      end_time: new Date('2026-01-28T19:00:00Z').getTime(),
+      label: 'Uncategorized',
+      color: '#00ff00',
+      category_id: undefined,
+    }];
+
+    renderWithQueryClient(<Timeline date={mockDate} timeEntries={uncategorizedEntries} />);
+
+    const entryRect = document.querySelector('.time-entry-block > rect');
+    expect(entryRect?.getAttribute('fill')).toBe('#6b7280');
   });
 });

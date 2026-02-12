@@ -237,15 +237,19 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
     return timeEntries.map((entry) => {
       const x = timeToX(entry.start_time);
       const blockWidth = Math.max(timeToX(entry.end_time) - x, 1);
-      const color =
-        (entry.category_id && categoryMap.get(entry.category_id)) ||
-        entry.color ||
-        '#4CAF50';
+      const color = entry.category_id
+        ? (categoryMap.get(entry.category_id) ?? '#6b7280')
+        : '#6b7280';
 
       return (
         <g
           key={entry.id}
+          className="time-entry-block"
           style={{ cursor: 'pointer' }}
+          onMouseDown={(e) => {
+            // Prevent timeline drag-selection when interacting with an existing entry block.
+            e.stopPropagation();
+          }}
           onClick={(e) => {
             e.stopPropagation();
             if (onEntryClick) {
@@ -253,6 +257,16 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
             }
           }}
         >
+          <defs>
+            <clipPath id={`time-entry-label-clip-${dayStart}-${entry.id}`}>
+              <rect
+                x={x + 6}
+                y={24}
+                width={Math.max(blockWidth - 12, 0)}
+                height={52}
+              />
+            </clipPath>
+          </defs>
           <rect
             x={x}
             y={20}
@@ -264,12 +278,13 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
             rx={4}
           />
           <text
-            x={x + blockWidth / 2}
+            x={x + 6}
             y={55}
-            textAnchor="middle"
+            textAnchor="start"
             fill="white"
             fontSize={12}
             fontWeight="bold"
+            clipPath={`url(#time-entry-label-clip-${dayStart}-${entry.id})`}
             style={{ pointerEvents: 'none', display: blockWidth >= 36 ? 'block' : 'none' }}
           >
             {entry.label}
@@ -277,7 +292,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
         </g>
       );
     });
-  }, [timeEntries, onEntryClick, categoryMap, timelineWidth]);
+  }, [timeEntries, onEntryClick, categoryMap, timelineWidth, dayStart]);
 
   const processBarBlocks = useMemo(() => {
     return processRuns

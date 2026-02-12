@@ -45,6 +45,33 @@ pub fn create_category_impl(conn: &Connection, category: &CategoryInput) -> AppR
     })
 }
 
+pub fn update_category_impl(
+    conn: &Connection,
+    id: i64,
+    category: &CategoryInput,
+) -> AppResult<Category> {
+    if category.name.trim().is_empty() {
+        return Err("Category name cannot be empty".to_string());
+    }
+
+    let rows_affected = conn
+        .execute(
+            "UPDATE categories SET name = ?1, color = ?2 WHERE id = ?3",
+            params![category.name, category.color, id],
+        )
+        .map_err(|e| format!("Failed to update category: {}", e))?;
+
+    if rows_affected == 0 {
+        return Err("Category not found".to_string());
+    }
+
+    Ok(Category {
+        id,
+        name: category.name.clone(),
+        color: category.color.clone(),
+    })
+}
+
 pub fn delete_category_impl(conn: &Connection, id: i64) -> AppResult<()> {
     // First, nullify category_id in time_entries that use this category
     conn.execute(
