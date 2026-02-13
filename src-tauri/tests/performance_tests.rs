@@ -358,6 +358,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[ignore = "benchmark-style and timing-sensitive; run manually when needed"]
     fn test_database_query_performance() {
         let temp_dir = TempDir::new().unwrap();
         let db_path = temp_dir.path().join("test_perf.db");

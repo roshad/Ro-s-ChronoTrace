@@ -7,7 +7,11 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 一个基于 Tauri 的桌面时间跟踪应用，具备自动截图和窗口活动捕获功能。
-
+- 解决了toggl track的一些痛点
+    - 偶尔需要重登录
+    - 统计需要到网页看
+    - 内存占用高，且有内存泄漏
+    - 越用越卡，界面操作不流畅
 
 - 不断增长、没有自动清理的数据：
     - 截图、窗口活动

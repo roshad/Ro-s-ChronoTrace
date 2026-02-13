@@ -128,5 +128,38 @@ describe('EntryDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: '取消' }));
     expect(mockOnCancel).toHaveBeenCalled();
   });
+
+  it('submits edited time range from dialog', () => {
+    const { container } = renderWithQueryClient(
+      <EntryDialog
+        startTime={mockStartTime}
+        endTime={mockEndTime}
+        onSubmit={mockOnSubmit}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    const timeInputs = container.querySelectorAll('input[type="time"]');
+    expect(timeInputs).toHaveLength(2);
+
+    fireEvent.change(timeInputs[0], { target: { value: '09:15' } });
+    fireEvent.change(timeInputs[1], { target: { value: '11:00' } });
+    fireEvent.change(screen.getByPlaceholderText('你刚刚在做什么？'), {
+      target: { value: 'Edited Range Entry' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '创建条目' }));
+
+    const expectedStart = new Date(mockStartTime);
+    expectedStart.setHours(9, 15, 0, 0);
+    const expectedEnd = new Date(mockEndTime);
+    expectedEnd.setHours(11, 0, 0, 0);
+
+    expect(mockOnSubmit).toHaveBeenCalledWith({
+      start_time: expectedStart.getTime(),
+      end_time: expectedEnd.getTime(),
+      label: 'Edited Range Entry',
+      category_id: undefined,
+    });
+  });
 });
 

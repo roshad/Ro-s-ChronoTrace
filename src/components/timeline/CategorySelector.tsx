@@ -165,7 +165,7 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
                         <span>{category.name}</span>
                       </button>
 
-                      <div className="toolbar-row" style={{ gap: 6 }}>
+                      <div className="toolbar-row category-actions-row" style={{ gap: 6 }}>
                         <button
                           type="button"
                           className="btn btn-ghost btn-sm"

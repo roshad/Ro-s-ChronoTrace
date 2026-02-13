@@ -105,16 +105,12 @@ async fn start_window_capture() {
 
 /// Start background screenshot capture task
 ///
-/// Captures screenshot every 5 minutes
+/// Starts first screenshot after 1 minute, then captures every 5 minutes
 async fn start_screenshot_capture() {
-    if let Err(e) = capture_recent_screenshot_on_startup().await {
-        eprintln!("Failed to perform startup screenshot backfill: {}", e);
-    }
+    // Delay first capture so app startup does not immediately create a screenshot.
+    tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
 
     loop {
-        // Wait 5 minutes before first capture
-        tokio::time::sleep(tokio::time::Duration::from_secs(300)).await;
-
         match capture::capture_screenshot().await {
             Ok(file_path) => {
                 println!("Screenshot captured: {}", file_path);
@@ -123,27 +119,8 @@ async fn start_screenshot_capture() {
                 eprintln!("Failed to capture screenshot: {}", e);
             }
         }
-    }
-}
 
-async fn capture_recent_screenshot_on_startup() -> Result<(), String> {
-    let now = chrono::Local::now().timestamp_millis();
-    let has_recent = data::with_db(|conn| data::get_screenshot_near_time(conn, now, 300000))
-        .map(|v| v.is_some())?;
-
-    if has_recent {
-        return Ok(());
-    }
-
-    match capture::capture_screenshot().await {
-        Ok(file_path) => {
-            println!("Startup screenshot backfill captured: {}", file_path);
-            Ok(())
-        }
-        Err(e) => {
-            eprintln!("Startup screenshot backfill failed: {}", e);
-            Err(e)
-        }
+        tokio::time::sleep(tokio::time::Duration::from_secs(300)).await;
     }
 }
 

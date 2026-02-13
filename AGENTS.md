@@ -27,7 +27,5 @@ Rust (Tauri 2.x), TypeScript 5.x (React 18.x): Follow standard conventions
 - Toggl-like Features: Added real-time timer input and item categorization support.
 
 <!-- MANUAL ADDITIONS START -->
-- 任务完成后，读取PLAN.md ，如完成了相关项目，则写入相关功能和总体完成的百分比。先读再写是因为避免覆盖人工修改的内容。
-- 再查看有无可继续推进的项目，如有，继续开发循环。
 
 <!-- MANUAL ADDITIONS END -->

@@ -30,6 +30,7 @@ export const TimelineView: React.FC = () => {
     items: Array<{ processName: string; seconds: number; percent: number }>;
   } | null>(null);
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
+  const [editEntryError, setEditEntryError] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [settingsForm, setSettingsForm] = useState<ScreenshotSettings>({
@@ -215,15 +216,30 @@ export const TimelineView: React.FC = () => {
     },
   });
 
+  const formatUpdateEntryError = (error: unknown): string => {
+    const message = String(error ?? '');
+    if (message.includes('No updates provided')) {
+      return '未检测到可保存的修改。';
+    }
+    if (message.includes('Time entry overlaps with an existing entry')) {
+      return '时间与现有条目重叠，请调整开始/结束时间。';
+    }
+    if (message.includes('end_time must be greater than start_time')) {
+      return '结束时间必须晚于开始时间。';
+    }
+    return `更新条目失败：${message}`;
+  };
+
   const updateMutation = useMutation({
     mutationFn: ({ id, updates }: { id: number; updates: TimeEntryUpdate }) => api.updateTimeEntry(id, updates),
     onSuccess: () => {
       invalidateEntryDerivedQueries();
+      setEditEntryError(null);
       setEditingEntry(null);
     },
     onError: (error) => {
       console.error('Failed to update time entry:', error);
-      alert(`更新条目失败：${error}`);
+      setEditEntryError(formatUpdateEntryError(error));
     },
   });
 
@@ -279,6 +295,7 @@ export const TimelineView: React.FC = () => {
   };
 
   const handleEntryClick = (entry: TimeEntry) => {
+    setEditEntryError(null);
     setEditingEntry(entry);
   };
 
@@ -792,7 +809,11 @@ export const TimelineView: React.FC = () => {
           onSave={handleUpdateEntry}
           onDelete={handleDeleteEntry}
           onRestart={handleRestartEntry}
-          onCancel={() => setEditingEntry(null)}
+          onCancel={() => {
+            setEditEntryError(null);
+            setEditingEntry(null);
+          }}
+          errorMessage={editEntryError}
         />
       )}
 

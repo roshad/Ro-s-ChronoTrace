@@ -438,6 +438,11 @@ select {
   margin-bottom: 6px;
 }
 
+.category-actions-row {
+  margin-left: auto;
+  flex-wrap: nowrap;
+}
+
 .category-item:hover {
   background: var(--surface-soft);
 }

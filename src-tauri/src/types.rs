@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -26,7 +26,17 @@ pub struct TimeEntryUpdate {
     pub end_time: Option<i64>,
     pub label: Option<String>,
     pub color: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_optional_optional_i64")]
     pub category_id: Option<Option<i64>>,
+}
+
+fn deserialize_optional_optional_i64<'de, D>(
+    deserializer: D,
+) -> Result<Option<Option<i64>>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Ok(Some(Option::<i64>::deserialize(deserializer)?))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
