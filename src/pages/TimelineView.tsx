@@ -1,6 +1,5 @@
 ﻿import React, { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { localDataDir, join } from '@tauri-apps/api/path';
 import { open } from '@tauri-apps/plugin-shell';
 import { ProcessRun, Timeline } from '../components/timeline/Timeline';
 import { EntryDialog } from '../components/timeline/EntryDialog';
@@ -9,13 +8,12 @@ import { Navigation } from '../components/timeline/Navigation';
 import { HoverInsightsTooltip } from '../components/timeline/HoverInsightsTooltip';
 import { TodaySearchBar } from '../components/search/TodaySearchBar';
 import { ExportButton } from '../components/export/ExportButton';
-import { StatusIndicator } from '../components/capture/StatusIndicator';
 import { useTimelineStore } from '../services/store';
 import { api, ScreenshotSettings, TimeEntry, TimeEntryInput, TimeEntryUpdate } from '../services/api';
 import { TimerInput } from '../components/timeline/TimerInput';
 
 export const TimelineView: React.FC = () => {
-  const { selectedDate, setSelectedDate, activeTimer, startTimer } = useTimelineStore();
+  const { selectedDate, setSelectedDate, activeTimer, startTimer, stopTimer } = useTimelineStore();
   const [showDialog, setShowDialog] = useState(false);
   const [dialogRange, setDialogRange] = useState<{ start: number; end: number } | null>(null);
   const [dialogInitialLabel, setDialogInitialLabel] = useState('');
@@ -34,9 +32,9 @@ export const TimelineView: React.FC = () => {
   const [showHelp, setShowHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [settingsForm, setSettingsForm] = useState<ScreenshotSettings>({
-    quality: 55,
-    max_width: 1920,
-    max_file_kb: 100,
+    quality: 40,
+    max_width: 960,
+    max_file_kb: 50,
     storage_dir: '',
   });
 
@@ -230,6 +228,11 @@ export const TimelineView: React.FC = () => {
     return `更新条目失败：${message}`;
   };
 
+  const isMissingTimeEntryError = (error: unknown): boolean => {
+    const message = String(error ?? '');
+    return message.includes('Failed to fetch time entry') && message.includes('Query returned no rows');
+  };
+
   const updateMutation = useMutation({
     mutationFn: ({ id, updates }: { id: number; updates: TimeEntryUpdate }) => api.updateTimeEntry(id, updates),
     onSuccess: () => {
@@ -249,13 +252,22 @@ export const TimelineView: React.FC = () => {
       invalidateEntryDerivedQueries();
     },
     onError: (error) => {
+      if (isMissingTimeEntryError(error)) {
+        stopTimer();
+        invalidateEntryDerivedQueries();
+        console.warn('Running timer entry no longer exists. Stopped active timer.');
+        return;
+      }
       console.error('Failed to update running timer entry:', error);
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.deleteTimeEntry(id),
-    onSuccess: () => {
+    onSuccess: (_, deletedId) => {
+      if (activeTimer?.entryId === deletedId) {
+        stopTimer();
+      }
       invalidateEntryDerivedQueries();
       setEditingEntry(null);
     },
@@ -595,17 +607,17 @@ export const TimelineView: React.FC = () => {
     }
   };
 
-  const resolveScreenshotPath = async (storedPath: string): Promise<string> => {
-    if (/^(?:[a-zA-Z]:[\\/]|\\\\)/.test(storedPath)) {
-      return storedPath;
-    }
-    const base = await localDataDir();
-    return join(base, 'DigitalDiary', ...storedPath.split('/'));
-  };
+  const resolveScreenshotPath = async (storedPath: string): Promise<string> => (
+    api.resolveScreenshotFilePath(storedPath)
+  );
+
+  const resolveScreenshotStorageRoot = async (configuredStorageDir?: string): Promise<string> => (
+    api.resolveScreenshotStorageDir(configuredStorageDir)
+  );
 
   const handleOpenHoveredScreenshot = async () => {
     if (!hoverCard?.screenshot?.filePath) {
-      alert('当前截图无法直接打开原图文件。');
+      console.warn('Current screenshot cannot be opened directly because file path is unavailable.');
       return;
     }
 
@@ -623,7 +635,24 @@ export const TimelineView: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to open screenshot file:', error);
-      alert(`打开截图失败：${error}`);
+    }
+  };
+
+  const handleOpenScreenshotStorageDir = async () => {
+    try {
+      const rootDir = await resolveScreenshotStorageRoot(settingsForm.storage_dir);
+      const normalizedPath = rootDir.replace(/\\/g, '/');
+      const fileUrl = /^[a-zA-Z]:\//.test(normalizedPath)
+        ? `file:///${normalizedPath}`
+        : `file://${normalizedPath}`;
+
+      try {
+        await open(fileUrl);
+      } catch {
+        await open(rootDir);
+      }
+    } catch (error) {
+      console.error('Failed to open screenshot storage directory:', error);
     }
   };
 
@@ -708,10 +737,7 @@ export const TimelineView: React.FC = () => {
   return (
     <div className="app-shell">
       <div className="app-header">
-        <h1 className="app-title">数字日志</h1>
-
         <div className="app-toolbar">
-          <StatusIndicator />
           <ExportButton />
 
           <button
@@ -916,6 +942,14 @@ export const TimelineView: React.FC = () => {
               <button
                 type="button"
                 className="btn btn-secondary"
+                onClick={handleOpenScreenshotStorageDir}
+                disabled={updateSettingsMutation.isPending}
+              >
+                打开存储目录
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
                 onClick={() => setSettingsForm((prev) => ({ ...prev, storage_dir: '' }))}
                 disabled={updateSettingsMutation.isPending}
               >
@@ -944,3 +978,4 @@ export const TimelineView: React.FC = () => {
     </div>
   );
 };
+

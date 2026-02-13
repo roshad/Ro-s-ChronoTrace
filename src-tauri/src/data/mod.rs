@@ -94,7 +94,7 @@ pub async fn export_data_cmd() -> AppResult<crate::types::ExportData> {
 
 #[tauri::command]
 pub async fn get_categories() -> AppResult<Vec<crate::types::Category>> {
-    with_db(|conn| categories::get_categories_impl(conn))
+    with_db(categories::get_categories_impl)
 }
 
 #[tauri::command]

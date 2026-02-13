@@ -48,6 +48,7 @@ describe('Timeline', () => {
   ];
 
   beforeEach(() => {
+    window.localStorage.clear();
     mockGetCategories.mockResolvedValue([]);
   });
 
@@ -221,6 +222,14 @@ describe('Timeline', () => {
     expect(screen.getByText('当前视野：23 小时')).toBeInTheDocument();
   });
 
+  it('restores previous zoom level from localStorage on startup', () => {
+    window.localStorage.setItem('timeline-visible-hours', '7');
+
+    renderWithQueryClient(<Timeline date={mockDate} timeEntries={mockTimeEntries} />);
+
+    expect(screen.getByText('当前视野：7 小时')).toBeInTheDocument();
+  });
+
   it('keeps normal wheel as pan and not zoom', () => {
     renderWithQueryClient(<Timeline date={mockDate} timeEntries={mockTimeEntries} />);
 
@@ -252,8 +261,9 @@ describe('Timeline', () => {
     renderWithQueryClient(<Timeline date={mockDate} timeEntries={mockTimeEntries} />);
 
     const label = screen.getByText('Work');
-    expect(label.tagName.toLowerCase()).toBe('text');
-    expect(label.getAttribute('clip-path')).toMatch(/^url\(#time-entry-label-clip-/);
+    const textElement = label.closest('text');
+    expect(textElement).not.toBeNull();
+    expect(textElement?.getAttribute('clip-path')).toMatch(/^url\(#time-entry-label-clip-/);
   });
 
   it('uses category color as the single source when entry has category_id', async () => {

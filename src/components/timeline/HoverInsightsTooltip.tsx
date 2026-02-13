@@ -34,8 +34,8 @@ const formatDuration = (seconds: number) => {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
-  if (h > 0) return `${h}小时 ${m}分${s}秒`;
-  if (m > 0) return `${m}分${s}秒`;
+  if (h > 0) return `${h}小时 ${m}分 ${s}秒`;
+  if (m > 0) return `${m}分 ${s}秒`;
   return `${s}秒`;
 };
 
@@ -55,6 +55,8 @@ export const HoverInsightsTooltip: React.FC<HoverInsightsTooltipProps> = ({
   isFading = false,
 }) => {
   const imageSrc = dataUrl || (filePath ? `asset://localhost/${filePath}` : undefined);
+  const rangeDurationSeconds = Math.max(0, Math.round((rangeEnd - rangeStart) / 1000));
+  const rangeDurationText = formatDuration(rangeDurationSeconds);
 
   return (
     <div
@@ -62,7 +64,9 @@ export const HoverInsightsTooltip: React.FC<HoverInsightsTooltipProps> = ({
       style={{ left: position.x, top: position.y }}
     >
       <div className="small muted">时间点：{formatTime(timestamp)}</div>
-      <div className="small muted">区间：{formatTime(rangeStart)} - {formatTime(rangeEnd)}</div>
+      <div className="small muted">
+        区间：{formatTime(rangeStart)} - {formatTime(rangeEnd)}（持续 {rangeDurationText}）
+      </div>
       <div className="small muted">行为：{entryLabel ?? '（空白区间）'}</div>
       <div className="small muted">类别：{entryLabel ? (categoryName ?? '未分类') : '-'}</div>
 
@@ -100,4 +104,3 @@ export const HoverInsightsTooltip: React.FC<HoverInsightsTooltipProps> = ({
     </div>
   );
 };
-

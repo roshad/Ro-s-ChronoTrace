@@ -16,7 +16,7 @@ mod tests {
         let base_path = temp_dir.path();
 
         // Get screenshot path
-        let screenshot_path = get_screenshot_path(&base_path);
+        let screenshot_path = get_screenshot_path(base_path);
 
         // Verify the path is correct
         assert!(
@@ -41,7 +41,7 @@ mod tests {
         let base_path = temp_dir.path();
 
         // Get screenshot path
-        let screenshot_path = get_screenshot_path(&base_path);
+        let screenshot_path = get_screenshot_path(base_path);
 
         // Create the directory
         fs::create_dir_all(&screenshot_path).expect("Failed to create screenshots directory");
@@ -50,7 +50,7 @@ mod tests {
         let screenshot_data = vec![0u8; 100]; // Simple test data
 
         // Save screenshot
-        let result = save_screenshot(&base_path, 1234567890, screenshot_data.clone());
+        let result = save_screenshot(base_path, 1234567890, screenshot_data.clone());
         assert!(result.is_ok(), "Screenshot save should succeed");
 
         // Verify the file exists
@@ -69,7 +69,7 @@ mod tests {
         let base_path = temp_dir.path();
 
         // Get screenshot path
-        let screenshot_path = get_screenshot_path(&base_path);
+        let screenshot_path = get_screenshot_path(base_path);
 
         // Create the directory
         fs::create_dir_all(&screenshot_path).expect("Failed to create screenshots directory");
@@ -78,8 +78,8 @@ mod tests {
         let screenshot_data = vec![0u8; 100];
 
         // Save multiple screenshots with the same timestamp
-        let result1 = save_screenshot(&base_path, 1234567890, screenshot_data.clone());
-        let result2 = save_screenshot(&base_path, 1234567890, screenshot_data.clone());
+        let result1 = save_screenshot(base_path, 1234567890, screenshot_data.clone());
+        let result2 = save_screenshot(base_path, 1234567890, screenshot_data.clone());
 
         assert!(result1.is_ok(), "First screenshot save should succeed");
         assert!(result2.is_ok(), "Second screenshot save should succeed");
@@ -102,7 +102,7 @@ mod tests {
         let base_path = temp_dir.path();
 
         // Get screenshot path
-        let screenshot_path = get_screenshot_path(&base_path);
+        let screenshot_path = get_screenshot_path(base_path);
 
         // Create the directory
         fs::create_dir_all(&screenshot_path).expect("Failed to create screenshots directory");
@@ -113,7 +113,7 @@ mod tests {
         // Save screenshots for different timestamps
         let timestamps = [1234567890, 1234567891, 1234567892];
         for timestamp in timestamps {
-            save_screenshot(&base_path, timestamp, screenshot_data.clone())
+            save_screenshot(base_path, timestamp, screenshot_data.clone())
                 .expect("Failed to save screenshot");
         }
 
@@ -145,7 +145,7 @@ mod tests {
         let base_path = temp_dir.path();
 
         // Get screenshot path
-        let screenshot_path = get_screenshot_path(&base_path);
+        let screenshot_path = get_screenshot_path(base_path);
 
         // Create the directory
         fs::create_dir_all(&screenshot_path).expect("Failed to create screenshots directory");
@@ -154,7 +154,7 @@ mod tests {
         let screenshot_data = vec![0u8; 100];
 
         // Save a screenshot
-        let result = save_screenshot(&base_path, 1234567890, screenshot_data.clone());
+        let result = save_screenshot(base_path, 1234567890, screenshot_data.clone());
         assert!(result.is_ok(), "Screenshot save should succeed");
 
         let saved_path = result.unwrap();
@@ -174,7 +174,7 @@ mod tests {
         let base_path = temp_dir.path();
 
         // Get screenshot path
-        let screenshot_path = get_screenshot_path(&base_path);
+        let screenshot_path = get_screenshot_path(base_path);
 
         // Create the directory
         fs::create_dir_all(&screenshot_path).expect("Failed to create screenshots directory");
@@ -183,7 +183,7 @@ mod tests {
         let screenshot_data: Vec<u8> = vec![0u8; 1024 * 1024];
 
         // Save screenshot
-        let result = save_screenshot(&base_path, 1234567890, screenshot_data);
+        let result = save_screenshot(base_path, 1234567890, screenshot_data);
         assert!(result.is_ok(), "Large screenshot save should succeed");
 
         // Verify the file exists and has correct size

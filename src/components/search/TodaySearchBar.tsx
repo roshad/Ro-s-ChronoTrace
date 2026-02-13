@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { AppWindow, CheckCircle2, Clock, Search } from 'lucide-react';
 import { api, SearchResult, TimeEntry } from '../../services/api';
-import { Search, CheckCircle2, Clock, AppWindow } from 'lucide-react';
 
 interface RangeSearchBarProps {
   date: Date;
@@ -9,10 +9,30 @@ interface RangeSearchBarProps {
 
 type RangeType = 'day' | 'month' | 'year' | 'all';
 
+const getUtf8ByteLength = (value: string): number => {
+  const normalized = value.trim();
+  let length = 0;
+  for (const char of normalized) {
+    const codePoint = char.codePointAt(0) ?? 0;
+    if (codePoint <= 0x7f) {
+      length += 1;
+    } else if (codePoint <= 0x7ff) {
+      length += 2;
+    } else if (codePoint <= 0xffff) {
+      length += 3;
+    } else {
+      length += 4;
+    }
+  }
+  return length;
+};
+
 export const TodaySearchBar: React.FC<RangeSearchBarProps> = ({ date }) => {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [range, setRange] = useState<RangeType>('day');
+  const normalizedQuery = debouncedQuery.trim();
+  const canSearch = getUtf8ByteLength(debouncedQuery) >= 2;
 
   const timeRange = useMemo(() => {
     if (range === 'all') return { start: 0, end: 0 };
@@ -48,14 +68,14 @@ export const TodaySearchBar: React.FC<RangeSearchBarProps> = ({ date }) => {
   }, [query]);
 
   const { data: results = [], isLoading } = useQuery({
-    queryKey: ['searchRange', timeRange.start, timeRange.end, range, debouncedQuery],
+    queryKey: ['searchRange', timeRange.start, timeRange.end, range, normalizedQuery],
     queryFn: () => {
       if (range === 'all') {
-        return api.searchActivities(debouncedQuery);
+        return api.searchActivities(normalizedQuery);
       }
-      return api.searchActivitiesByRange(debouncedQuery, timeRange.start, timeRange.end);
+      return api.searchActivitiesByRange(normalizedQuery, timeRange.start, timeRange.end);
     },
-    enabled: debouncedQuery.length >= 2,
+    enabled: canSearch,
   });
 
   const { data: categories = [] } = useQuery({
@@ -81,9 +101,7 @@ export const TodaySearchBar: React.FC<RangeSearchBarProps> = ({ date }) => {
 
       const key = entry.category_id ? `category-${entry.category_id}` : 'uncategorized';
       const category = entry.category_id ? categories.find((c) => c.id === entry.category_id) : undefined;
-      const resolvedColor = entry.category_id
-        ? (category?.color ?? '#6b7280')
-        : '#6b7280';
+      const resolvedColor = entry.category_id ? (category?.color ?? '#6b7280') : '#6b7280';
       const existing = totals.get(key);
       if (existing) {
         existing.durationMs += durationMs;
@@ -117,10 +135,10 @@ export const TodaySearchBar: React.FC<RangeSearchBarProps> = ({ date }) => {
   };
 
   const formatTime = (timestamp: number) => {
-      const d = new Date(timestamp);
-      if (range === 'day') {
+    const d = new Date(timestamp);
+    if (range === 'day') {
       return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-      }
+    }
     return d.toLocaleString('zh-CN', {
       month: 'long',
       day: 'numeric',
@@ -139,7 +157,16 @@ export const TodaySearchBar: React.FC<RangeSearchBarProps> = ({ date }) => {
   return (
     <div className="panel search-panel">
       <div style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 12,
+            gap: 12,
+            flexWrap: 'wrap',
+          }}
+        >
           <h3 className="search-heading">
             <Search size={20} color="var(--primary)" />
             行为搜索
@@ -170,6 +197,52 @@ export const TodaySearchBar: React.FC<RangeSearchBarProps> = ({ date }) => {
           </div>
         </div>
       </div>
+
+      {canSearch && (
+        <div style={{ marginBottom: 16 }}>
+          {results.length > 0 ? (
+            <div className="result-list">
+              {results.map((result: SearchResult, index: number) => (
+                <div key={index} className="result-item">
+                  <div
+                    className="result-icon"
+                    style={{
+                      backgroundColor: result.type === 'time_entry' ? '#dcfce7' : '#e0e7ff',
+                    }}
+                  >
+                    {result.type === 'time_entry' ? (
+                      <CheckCircle2 size={16} color="#16a34a" />
+                    ) : (
+                      <AppWindow size={16} color="#4f46e5" />
+                    )}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, marginBottom: 2 }}>{result.title}</div>
+                    <div className="small muted" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Clock size={12} />
+                      {formatTime(result.timestamp)}
+                      {result.process_name && ` - ${result.process_name}`}
+                    </div>
+                  </div>
+                  <div
+                    className="result-tag"
+                    style={{
+                      backgroundColor: result.type === 'time_entry' ? '#f0fdf4' : '#eef2ff',
+                      color: result.type === 'time_entry' ? '#166534' : '#4338ca',
+                    }}
+                  >
+                    {result.type === 'time_entry' ? '条目' : '窗口'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : !isLoading && (
+            <div className="panel panel-soft" style={{ padding: 16, textAlign: 'center' }}>
+              未找到与“{normalizedQuery}”相关的记录。
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="stats-group">
         <div className="stats-row" style={{ marginBottom: 10 }}>
@@ -210,52 +283,6 @@ export const TodaySearchBar: React.FC<RangeSearchBarProps> = ({ date }) => {
           </div>
         )}
       </div>
-
-      {debouncedQuery.length >= 2 && (
-        <div style={{ marginTop: 16 }}>
-          {results.length > 0 ? (
-            <div className="result-list">
-              {results.map((result: SearchResult, index: number) => (
-                <div key={index} className="result-item">
-                  <div
-                    className="result-icon"
-                    style={{
-                      backgroundColor: result.type === 'time_entry' ? '#dcfce7' : '#e0e7ff',
-                    }}
-                  >
-                    {result.type === 'time_entry' ? (
-                      <CheckCircle2 size={16} color="#16a34a" />
-                    ) : (
-                      <AppWindow size={16} color="#4f46e5" />
-                    )}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, marginBottom: 2 }}>{result.title}</div>
-                    <div className="small muted" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Clock size={12} />
-                      {formatTime(result.timestamp)}
-                      {result.process_name && ` - ${result.process_name}`}
-                    </div>
-                  </div>
-                  <div
-                    className="result-tag"
-                    style={{
-                      backgroundColor: result.type === 'time_entry' ? '#f0fdf4' : '#eef2ff',
-                      color: result.type === 'time_entry' ? '#166534' : '#4338ca',
-                    }}
-                  >
-                    {result.type === 'time_entry' ? '条目' : '窗口'}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : !isLoading && (
-            <div className="panel panel-soft" style={{ padding: 16, textAlign: 'center' }}>
-              未找到与“{debouncedQuery}”相关的记录。
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };

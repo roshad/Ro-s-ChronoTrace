@@ -163,5 +163,31 @@ describe('EntryDialog', () => {
       category_id: undefined,
     });
   });
+
+  it('normalizes create range to second boundaries to avoid boundary overlap', () => {
+    const startWithMs = new Date('2026-01-28T09:00:00.900Z').getTime();
+    const endWithMs = new Date('2026-01-28T10:30:00.200Z').getTime();
+
+    renderWithQueryClient(
+      <EntryDialog
+        startTime={startWithMs}
+        endTime={endWithMs}
+        onSubmit={mockOnSubmit}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    fireEvent.change(screen.getByPlaceholderText('你刚刚在做什么？'), {
+      target: { value: 'Boundary Safe Entry' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '创建条目' }));
+
+    expect(mockOnSubmit).toHaveBeenCalledWith({
+      start_time: Math.ceil(startWithMs / 1000) * 1000,
+      end_time: Math.floor(endWithMs / 1000) * 1000,
+      label: 'Boundary Safe Entry',
+      category_id: undefined,
+    });
+  });
 });
 

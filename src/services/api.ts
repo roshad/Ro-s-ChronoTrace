@@ -115,6 +115,12 @@ export const api = {
   updateScreenshotSettings: (settings: ScreenshotSettings): Promise<ScreenshotSettings> =>
     invoke('update_screenshot_settings_cmd', { settings }),
 
+  resolveScreenshotStorageDir: (storageDir?: string): Promise<string> =>
+    invoke('resolve_screenshot_storage_dir_cmd', { storageDir }),
+
+  resolveScreenshotFilePath: (storedPath: string): Promise<string> =>
+    invoke('resolve_screenshot_file_path_cmd', { storedPath }),
+
   // Search
   searchActivities: (query: string): Promise<SearchResult[]> =>
     invoke('search_activities_cmd', { query }),

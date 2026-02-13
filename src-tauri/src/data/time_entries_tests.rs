@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod tests {
+mod cases {
     use crate::data::time_entries::{
         create_time_entry_impl, delete_time_entry_impl, get_time_entries_impl,
         update_time_entry_impl, TimeEntryInput, TimeEntryUpdate,

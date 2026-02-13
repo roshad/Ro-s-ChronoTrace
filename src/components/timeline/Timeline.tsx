@@ -39,6 +39,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
   const HOURS_IN_DAY = 24;
   const MIN_VISIBLE_HOURS = 4;
   const MAX_VISIBLE_HOURS = 24;
+  const ZOOM_STORAGE_KEY = 'timeline-visible-hours';
   const height = 120;
   const PROCESS_BAR_Y = 102;
   const PROCESS_BAR_HEIGHT = 10;
@@ -47,7 +48,21 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const pendingZoomAnchorRef = useRef<{ ratio: number; viewportOffset: number } | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
-  const [visibleHours, setVisibleHours] = useState(MAX_VISIBLE_HOURS);
+  const [visibleHours, setVisibleHours] = useState(() => {
+    try {
+      const stored = window.localStorage.getItem(ZOOM_STORAGE_KEY);
+      if (!stored) {
+        return MAX_VISIBLE_HOURS;
+      }
+      const parsed = Number(stored);
+      if (!Number.isFinite(parsed)) {
+        return MAX_VISIBLE_HOURS;
+      }
+      return Math.max(MIN_VISIBLE_HOURS, Math.min(MAX_VISIBLE_HOURS, Math.round(parsed)));
+    } catch {
+      return MAX_VISIBLE_HOURS;
+    }
+  });
 
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
@@ -66,6 +81,60 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
     }
     return (containerWidth * HOURS_IN_DAY) / visibleHours;
   }, [containerWidth, visibleHours]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(ZOOM_STORAGE_KEY, String(visibleHours));
+    } catch {
+      // ignore localStorage errors
+    }
+  }, [visibleHours]);
+
+  const wrapLabelLines = React.useCallback((label: string, maxWidth: number, maxLines: number) => {
+    const normalized = label.trim();
+    if (!normalized || maxWidth <= 0 || maxLines <= 0) {
+      return [] as string[];
+    }
+
+    const maxUnits = Math.max(1, Math.floor(maxWidth / 7));
+    const chars = Array.from(normalized);
+    const lines: string[] = [];
+    let currentLine = '';
+    let currentUnits = 0;
+    let consumed = 0;
+
+    const charUnits = (char: string) => (/[\u0000-\u00ff]/.test(char) ? 1 : 2);
+
+    for (let i = 0; i < chars.length; i += 1) {
+      const char = chars[i];
+      const units = charUnits(char);
+
+      if (currentUnits + units > maxUnits && currentLine.length > 0) {
+        lines.push(currentLine);
+        if (lines.length >= maxLines) {
+          break;
+        }
+        currentLine = char;
+        currentUnits = units;
+      } else {
+        currentLine += char;
+        currentUnits += units;
+      }
+      consumed = i + 1;
+    }
+
+    if (lines.length < maxLines && currentLine.length > 0) {
+      lines.push(currentLine);
+    }
+
+    if (consumed < chars.length && lines.length > 0) {
+      const lastIndex = lines.length - 1;
+      const lastLine = lines[lastIndex];
+      lines[lastIndex] = lastLine.length > 1 ? `${lastLine.slice(0, -1)}...` : `${lastLine}...`;
+    }
+
+    return lines;
+  }, []);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -240,6 +309,8 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
       const color = entry.category_id
         ? (categoryMap.get(entry.category_id) ?? '#6b7280')
         : '#6b7280';
+      const labelAreaWidth = Math.max(blockWidth - 12, 0);
+      const labelLines = wrapLabelLines(entry.label, labelAreaWidth, 3);
 
       return (
         <g
@@ -279,7 +350,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
           />
           <text
             x={x + 6}
-            y={55}
+            y={40}
             textAnchor="start"
             fill="white"
             fontSize={12}
@@ -287,12 +358,16 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
             clipPath={`url(#time-entry-label-clip-${dayStart}-${entry.id})`}
             style={{ pointerEvents: 'none', display: blockWidth >= 36 ? 'block' : 'none' }}
           >
-            {entry.label}
+            {labelLines.map((line, idx) => (
+              <tspan key={`line-${entry.id}-${idx}`} x={x + 6} dy={idx === 0 ? 0 : 14}>
+                {line}
+              </tspan>
+            ))}
           </text>
         </g>
       );
     });
-  }, [timeEntries, onEntryClick, categoryMap, timelineWidth, dayStart]);
+  }, [timeEntries, onEntryClick, categoryMap, timelineWidth, dayStart, wrapLabelLines]);
 
   const processBarBlocks = useMemo(() => {
     return processRuns

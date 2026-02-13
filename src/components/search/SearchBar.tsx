@@ -2,9 +2,29 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../services/api';
 
+const getUtf8ByteLength = (value: string): number => {
+  const normalized = value.trim();
+  let length = 0;
+  for (const char of normalized) {
+    const codePoint = char.codePointAt(0) ?? 0;
+    if (codePoint <= 0x7f) {
+      length += 1;
+    } else if (codePoint <= 0x7ff) {
+      length += 2;
+    } else if (codePoint <= 0xffff) {
+      length += 3;
+    } else {
+      length += 4;
+    }
+  }
+  return length;
+};
+
 export const SearchBar: React.FC = () => {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  const normalizedQuery = debouncedQuery.trim();
+  const canSearch = getUtf8ByteLength(debouncedQuery) >= 2;
 
   React.useEffect(() => {
     const timer = setTimeout(() => {
@@ -14,9 +34,9 @@ export const SearchBar: React.FC = () => {
   }, [query]);
 
   const { data: results = [], isLoading } = useQuery({
-    queryKey: ['search', debouncedQuery],
-    queryFn: () => api.searchActivities(debouncedQuery),
-    enabled: debouncedQuery.length >= 2,
+    queryKey: ['search', normalizedQuery],
+    queryFn: () => api.searchActivities(normalizedQuery),
+    enabled: canSearch,
   });
 
   const formatTimestamp = (timestamp: number) => {
@@ -36,12 +56,12 @@ export const SearchBar: React.FC = () => {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="搜索行为记录...（至少 2 个字符）"
+          placeholder="搜索行为记录...（至少 1 个中文或 2 个英文字符）"
           className="input"
         />
       </div>
 
-      {isLoading && debouncedQuery.length >= 2 && <div className="small muted">搜索中...</div>}
+      {isLoading && canSearch && <div className="small muted">搜索中...</div>}
 
       {results.length > 0 && (
         <div className="result-list" style={{ maxHeight: 400 }}>
@@ -60,7 +80,7 @@ export const SearchBar: React.FC = () => {
         </div>
       )}
 
-      {debouncedQuery.length >= 2 && !isLoading && results.length === 0 && (
+      {canSearch && !isLoading && results.length === 0 && (
         <div className="panel panel-soft" style={{ padding: 12, textAlign: 'center' }}>
           未找到结果
         </div>

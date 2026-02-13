@@ -53,14 +53,14 @@ describe('SearchBar', () => {
   it('renders search input', () => {
     renderWithQueryClient(<SearchBar />);
 
-    const searchInput = screen.getByPlaceholderText('搜索行为记录...（至少 2 个字符）');
+    const searchInput = screen.getByRole('textbox');
     expect(searchInput).toBeInTheDocument();
   });
 
   it('updates query state when typing', () => {
     renderWithQueryClient(<SearchBar />);
 
-    const searchInput = screen.getByPlaceholderText('搜索行为记录...（至少 2 个字符）') as HTMLInputElement;
+    const searchInput = screen.getByRole('textbox') as HTMLInputElement;
     fireEvent.change(searchInput, { target: { value: 'test' } });
 
     expect(searchInput.value).toBe('test');
@@ -71,7 +71,7 @@ describe('SearchBar', () => {
 
     renderWithQueryClient(<SearchBar />);
 
-    const searchInput = screen.getByPlaceholderText('搜索行为记录...（至少 2 个字符）');
+    const searchInput = screen.getByRole('textbox');
     fireEvent.change(searchInput, { target: { value: 'test' } });
 
     // Should not call API immediately
@@ -88,12 +88,25 @@ describe('SearchBar', () => {
   it('does not search with less than 2 characters', () => {
     renderWithQueryClient(<SearchBar />);
 
-    const searchInput = screen.getByPlaceholderText('搜索行为记录...（至少 2 个字符）');
+    const searchInput = screen.getByRole('textbox');
     fireEvent.change(searchInput, { target: { value: 't' } });
 
     advanceTimers(300);
 
     expect(mockSearchActivities).not.toHaveBeenCalled();
+  });
+
+  it('searches with a single Chinese character', async () => {
+    renderWithQueryClient(<SearchBar />);
+
+    const searchInput = screen.getByRole('textbox');
+    fireEvent.change(searchInput, { target: { value: '药' } });
+
+    advanceTimers(300);
+
+    await waitFor(() => {
+      expect(mockSearchActivities).toHaveBeenCalledWith('药');
+    });
   });
 
   it('displays loading state', async () => {
@@ -103,7 +116,7 @@ describe('SearchBar', () => {
 
     renderWithQueryClient(<SearchBar />);
 
-    const searchInput = screen.getByPlaceholderText('搜索行为记录...（至少 2 个字符）');
+    const searchInput = screen.getByRole('textbox');
     fireEvent.change(searchInput, { target: { value: 'test' } });
 
     advanceTimers(300);
@@ -128,7 +141,7 @@ describe('SearchBar', () => {
 
     renderWithQueryClient(<SearchBar />);
 
-    const searchInput = screen.getByPlaceholderText('搜索行为记录...（至少 2 个字符）');
+    const searchInput = screen.getByRole('textbox');
     fireEvent.change(searchInput, { target: { value: 'test' } });
 
     advanceTimers(300);
@@ -151,7 +164,7 @@ describe('SearchBar', () => {
 
     renderWithQueryClient(<SearchBar />);
 
-    const searchInput = screen.getByPlaceholderText('搜索行为记录...（至少 2 个字符）');
+    const searchInput = screen.getByRole('textbox');
     fireEvent.change(searchInput, { target: { value: 'test' } });
 
     advanceTimers(300);
@@ -174,7 +187,7 @@ describe('SearchBar', () => {
 
     renderWithQueryClient(<SearchBar />);
 
-    const searchInput = screen.getByPlaceholderText('搜索行为记录...（至少 2 个字符）');
+    const searchInput = screen.getByRole('textbox');
     fireEvent.change(searchInput, { target: { value: 'test' } });
 
     advanceTimers(300);
@@ -203,7 +216,7 @@ describe('SearchBar', () => {
 
     renderWithQueryClient(<SearchBar />);
 
-    const searchInput = screen.getByPlaceholderText('搜索行为记录...（至少 2 个字符）');
+    const searchInput = screen.getByRole('textbox');
     fireEvent.change(searchInput, { target: { value: 'test' } });
 
     advanceTimers(300);
@@ -223,7 +236,7 @@ describe('SearchBar', () => {
 
     renderWithQueryClient(<SearchBar />);
 
-    const searchInput = screen.getByPlaceholderText('搜索行为记录...（至少 2 个字符）');
+    const searchInput = screen.getByRole('textbox');
 
     // Type quickly
     fireEvent.change(searchInput, { target: { value: 't' } });
@@ -248,4 +261,5 @@ describe('SearchBar', () => {
     expect(mockSearchActivities).toHaveBeenCalledWith('test');
   });
 });
+
 

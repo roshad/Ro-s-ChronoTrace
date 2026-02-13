@@ -43,6 +43,21 @@ const parseTimeInput = (value: string, baseTimestamp: number) => {
   return base.getTime();
 };
 
+const normalizeCreateRange = (startTime: number, endTime: number) => {
+  const normalizedStart = Math.ceil(startTime / 1000) * 1000;
+  const normalizedEnd = Math.floor(endTime / 1000) * 1000;
+
+  // If snapping would collapse/flip the range, keep original values.
+  if (normalizedEnd <= normalizedStart) {
+    return { startTime, endTime };
+  }
+
+  return {
+    startTime: normalizedStart,
+    endTime: normalizedEnd,
+  };
+};
+
 const formatTime = (timestamp: number) => {
   const date = new Date(timestamp);
   return date.toLocaleTimeString('zh-CN', {
@@ -64,8 +79,11 @@ const getDurationText = (startTime: number, endTime: number) => {
 
 export const TimeEntryDialog: React.FC<TimeEntryDialogProps> = (props) => {
   const isEdit = props.mode === 'edit';
-  const sourceStartTime = isEdit ? props.entry.start_time : props.startTime;
-  const sourceEndTime = isEdit ? props.entry.end_time : props.endTime;
+  const sourceRange = isEdit
+    ? { startTime: props.entry.start_time, endTime: props.entry.end_time }
+    : normalizeCreateRange(props.startTime, props.endTime);
+  const sourceStartTime = sourceRange.startTime;
+  const sourceEndTime = sourceRange.endTime;
   const sourceLabel = isEdit ? props.entry.label : (props.initialLabel ?? '');
   const sourceCategoryId = isEdit ? props.entry.category_id : undefined;
 

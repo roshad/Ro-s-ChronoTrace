@@ -1,4 +1,4 @@
-// Integration tests for Tauri commands
+﻿// Integration tests for Tauri commands
 // These tests verify end-to-end command functionality
 
 #[cfg(test)]
@@ -21,7 +21,7 @@ mod tests {
         let db_path = temp_dir.path().join("test.db");
 
         // Initialize the database
-        let _ = digital_diary::data::database::initialize_database(&db_path)
+        digital_diary::data::database::initialize_database(&db_path)
             .expect("Failed to initialize database");
 
         // Create a connection
@@ -63,7 +63,7 @@ mod tests {
         let db_path = temp_dir.path().join("test.db");
 
         // Initialize the database
-        let _ = digital_diary::data::database::initialize_database(&db_path)
+        digital_diary::data::database::initialize_database(&db_path)
             .expect("Failed to initialize database");
 
         // Create a connection
@@ -109,7 +109,7 @@ mod tests {
         let db_path = temp_dir.path().join("test.db");
 
         // Initialize the database
-        let _ = digital_diary::data::database::initialize_database(&db_path)
+        digital_diary::data::database::initialize_database(&db_path)
             .expect("Failed to initialize database");
 
         // Create a connection
@@ -166,7 +166,7 @@ mod tests {
         let db_path = temp_dir.path().join("test.db");
 
         // Initialize the database
-        let _ = digital_diary::data::database::initialize_database(&db_path)
+        digital_diary::data::database::initialize_database(&db_path)
             .expect("Failed to initialize database");
 
         // Create a connection
@@ -204,7 +204,7 @@ mod tests {
         let db_path = temp_dir.path().join("test.db");
 
         // Initialize the database
-        let _ = digital_diary::data::database::initialize_database(&db_path)
+        digital_diary::data::database::initialize_database(&db_path)
             .expect("Failed to initialize database");
 
         // Create a connection
@@ -229,7 +229,7 @@ mod tests {
 
         // Verify we got results
         let results = result.unwrap();
-        assert!(results.len() > 0, "Should have search results");
+        assert!(!results.is_empty(), "Should have search results");
 
         // Verify the results contain the expected entry
         let has_work_project = results.iter().any(|r| r.title.contains("Work"));
@@ -244,7 +244,7 @@ mod tests {
         let export_path = temp_dir.path().join("export.csv");
 
         // Initialize the database
-        let _ = digital_diary::data::database::initialize_database(&db_path)
+        digital_diary::data::database::initialize_database(&db_path)
             .expect("Failed to initialize database");
 
         // Create a connection
@@ -291,7 +291,7 @@ mod tests {
         let db_path = temp_dir.path().join("test.db");
 
         // Initialize the database
-        let _ = digital_diary::data::database::initialize_database(&db_path)
+        digital_diary::data::database::initialize_database(&db_path)
             .expect("Failed to initialize database");
 
         // Create a connection
@@ -321,7 +321,7 @@ mod tests {
         let db_path = temp_dir.path().join("test.db");
 
         // Initialize the database
-        let _ = digital_diary::data::database::initialize_database(&db_path)
+        digital_diary::data::database::initialize_database(&db_path)
             .expect("Failed to initialize database");
 
         // Create a connection
@@ -351,3 +351,4 @@ mod tests {
         assert_eq!(count, 0, "Entry should not be created");
     }
 }
+

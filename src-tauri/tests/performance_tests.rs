@@ -178,7 +178,7 @@ impl DatabasePerformanceTests {
             // Insert screenshots (every 5 minutes = 288 per day)
             for i in 0..288 {
                 let timestamp = day_start + (i as i64 * 300000);
-                let day_id = (20250117 + day) as i32;
+                let day_id = 20250117 + day;
 
                 conn.execute(
                     "INSERT INTO screenshots (timestamp, file_path, day_id) VALUES (?, ?, ?)",
@@ -459,21 +459,14 @@ mod tests {
         println!("Data population took {:.2}s", start.elapsed().as_secs_f64());
 
         // Collect all results
-        let mut all_results = Vec::new();
-
-        // Database tests
-        all_results.push(DatabasePerformanceTests::test_timeline_query_performance(
-            &conn,
-        ));
-        all_results.push(DatabasePerformanceTests::test_screenshot_lookup_performance(&conn));
-        all_results.push(DatabasePerformanceTests::test_search_performance(&conn));
-
-        // Screenshot tests
-        all_results.push(ScreenshotPerformanceTests::test_screenshot_capture_simulation());
-
-        // Memory tests (simulated)
-        all_results.push(MemoryUsageTests::test_idle_memory_usage());
-        all_results.push(MemoryUsageTests::test_active_memory_usage());
+        let all_results = vec![
+            DatabasePerformanceTests::test_timeline_query_performance(&conn),
+            DatabasePerformanceTests::test_screenshot_lookup_performance(&conn),
+            DatabasePerformanceTests::test_search_performance(&conn),
+            ScreenshotPerformanceTests::test_screenshot_capture_simulation(),
+            MemoryUsageTests::test_idle_memory_usage(),
+            MemoryUsageTests::test_active_memory_usage(),
+        ];
 
         // Generate report
         let report = generate_performance_report(&all_results);

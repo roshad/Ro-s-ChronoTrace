@@ -60,6 +60,8 @@ fn main() {
             capture::screenshot::get_screenshot_for_time,
             app_settings::get_screenshot_settings_cmd,
             app_settings::update_screenshot_settings_cmd,
+            app_settings::resolve_screenshot_storage_dir_cmd,
+            app_settings::resolve_screenshot_file_path_cmd,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
