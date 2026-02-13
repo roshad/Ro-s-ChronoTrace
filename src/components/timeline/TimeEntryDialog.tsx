@@ -27,17 +27,19 @@ const formatTimeInput = (timestamp: number) => {
   const d = new Date(timestamp);
   const hh = d.getHours().toString().padStart(2, '0');
   const mm = d.getMinutes().toString().padStart(2, '0');
-  return `${hh}:${mm}`;
+  const ss = d.getSeconds().toString().padStart(2, '0');
+  return `${hh}:${mm}:${ss}`;
 };
 
 const parseTimeInput = (value: string, baseTimestamp: number) => {
-  const match = value.match(/^(\d{2}):(\d{2})$/);
+  const match = value.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
   if (!match) return null;
   const hours = Number(match[1]);
   const minutes = Number(match[2]);
-  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
+  const seconds = Number(match[3] ?? '0');
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59 || seconds < 0 || seconds > 59) return null;
   const base = new Date(baseTimestamp);
-  base.setHours(hours, minutes, 0, 0);
+  base.setHours(hours, minutes, seconds, 0);
   return base.getTime();
 };
 
@@ -46,15 +48,18 @@ const formatTime = (timestamp: number) => {
   return date.toLocaleTimeString('zh-CN', {
     hour: '2-digit',
     minute: '2-digit',
+    second: '2-digit',
     hour12: false,
   });
 };
 
 const getDurationText = (startTime: number, endTime: number) => {
   const durationMs = Math.max(0, endTime - startTime);
-  const hours = Math.floor(durationMs / 3600000);
-  const minutes = Math.floor((durationMs % 3600000) / 60000);
-  return `${hours}小时 ${minutes}分钟`;
+  const totalSeconds = Math.floor(durationMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${hours}小时 ${minutes}分钟 ${seconds}秒`;
 };
 
 export const TimeEntryDialog: React.FC<TimeEntryDialogProps> = (props) => {
@@ -94,13 +99,13 @@ export const TimeEntryDialog: React.FC<TimeEntryDialogProps> = (props) => {
 
     const parsedStartTime = parseTimeInput(startTimeInput, sourceStartTime);
     if (!parsedStartTime) {
-      setLocalError('时间格式无效，请使用 HH:mm。');
+      setLocalError('时间格式无效，请使用 HH:mm:ss。');
       return;
     }
 
     const parsedEndTime = parseTimeInput(endTimeInput, sourceEndTime);
     if (!parsedEndTime) {
-      setLocalError('时间格式无效，请使用 HH:mm。');
+      setLocalError('时间格式无效，请使用 HH:mm:ss。');
       return;
     }
 
@@ -150,6 +155,7 @@ export const TimeEntryDialog: React.FC<TimeEntryDialogProps> = (props) => {
               <div className="toolbar-row">
                 <input
                   type="time"
+                  step={1}
                   value={startTimeInput}
                   onChange={(e) => {
                     setLocalError(null);
@@ -160,6 +166,7 @@ export const TimeEntryDialog: React.FC<TimeEntryDialogProps> = (props) => {
                 <span>-</span>
                 <input
                   type="time"
+                  step={1}
                   value={endTimeInput}
                   onChange={(e) => {
                     setLocalError(null);

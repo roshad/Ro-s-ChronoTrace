@@ -141,18 +141,20 @@ describe('EntryDialog', () => {
 
     const timeInputs = container.querySelectorAll('input[type="time"]');
     expect(timeInputs).toHaveLength(2);
+    expect(timeInputs[0]).toHaveAttribute('step', '1');
+    expect(timeInputs[1]).toHaveAttribute('step', '1');
 
-    fireEvent.change(timeInputs[0], { target: { value: '09:15' } });
-    fireEvent.change(timeInputs[1], { target: { value: '11:00' } });
+    fireEvent.change(timeInputs[0], { target: { value: '09:15:30' } });
+    fireEvent.change(timeInputs[1], { target: { value: '11:00:45' } });
     fireEvent.change(screen.getByPlaceholderText('你刚刚在做什么？'), {
       target: { value: 'Edited Range Entry' },
     });
     fireEvent.click(screen.getByRole('button', { name: '创建条目' }));
 
     const expectedStart = new Date(mockStartTime);
-    expectedStart.setHours(9, 15, 0, 0);
+    expectedStart.setHours(9, 15, 30, 0);
     const expectedEnd = new Date(mockEndTime);
-    expectedEnd.setHours(11, 0, 0, 0);
+    expectedEnd.setHours(11, 0, 45, 0);
 
     expect(mockOnSubmit).toHaveBeenCalledWith({
       start_time: expectedStart.getTime(),
