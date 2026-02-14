@@ -257,6 +257,45 @@ describe('Timeline', () => {
     expect(dragGhost).toBeNull();
   });
 
+  it('calls onEntryRangeChange when dragging an existing entry handle', () => {
+    const mockOnEntryRangeChange = jest.fn();
+    renderWithQueryClient(
+      <Timeline
+        date={mockDate}
+        timeEntries={mockTimeEntries}
+        onEntryRangeChange={mockOnEntryRangeChange}
+      />
+    );
+
+    const endHandle = document.querySelector('.time-entry-resize-handle.end');
+    const svg = document.querySelector('svg');
+    expect(endHandle).toBeTruthy();
+    expect(svg).toBeTruthy();
+    if (!endHandle || !svg) {
+      return;
+    }
+
+    fireEvent.mouseDown(endHandle, {
+      clientX: 420,
+      clientY: 40,
+    });
+
+    fireEvent.mouseMove(svg, {
+      clientX: 560,
+      clientY: 40,
+      currentTarget: { getBoundingClientRect: () => ({ left: 0, top: 0 }) },
+    });
+
+    fireEvent.mouseUp(svg);
+
+    expect(mockOnEntryRangeChange).toHaveBeenCalledTimes(1);
+    const [entry, start, end] = mockOnEntryRangeChange.mock.calls[0];
+    expect(entry).toEqual(expect.objectContaining({ id: 1 }));
+    expect(start).toBe(mockTimeEntries[0].start_time);
+    expect(end).not.toBe(mockTimeEntries[0].end_time);
+    expect(end).toBeGreaterThan(start);
+  });
+
   it('clips entry label text so it does not overflow block bounds', () => {
     renderWithQueryClient(<Timeline date={mockDate} timeEntries={mockTimeEntries} />);
 

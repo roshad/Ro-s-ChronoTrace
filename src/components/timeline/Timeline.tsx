@@ -18,9 +18,23 @@ interface TimelineProps {
   onHoverEnd?: () => void;
   onDragSelect?: (start: number, end: number) => void;
   onEntryClick?: (entry: TimeEntry) => void;
+  onEntryRangeChange?: (entry: TimeEntry, start: number, end: number) => void;
   onProcessBarHover?: (payload: { timestamp: number; clientX: number; clientY: number }) => void;
   onProcessBarLeave?: () => void;
   onProcessBarClick?: (payload: { timestamp: number; clientX: number; clientY: number }) => void;
+}
+
+type EntryResizeEdge = 'start' | 'end';
+
+interface EntryResizeState {
+  entryId: number;
+  edge: EntryResizeEdge;
+  originalStart: number;
+  originalEnd: number;
+  previewStart: number;
+  previewEnd: number;
+  minBoundary: number;
+  maxBoundary: number;
 }
 
 export const Timeline: React.FC<TimelineProps> = React.memo(({
@@ -32,6 +46,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
   onHoverEnd,
   onDragSelect,
   onEntryClick,
+  onEntryRangeChange,
   onProcessBarHover,
   onProcessBarLeave,
   onProcessBarClick,
@@ -41,11 +56,16 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
   const MAX_VISIBLE_HOURS = 24;
   const ZOOM_STORAGE_KEY = 'timeline-visible-hours';
   const height = 120;
+  const ENTRY_BAR_Y = 20;
+  const ENTRY_BAR_HEIGHT = 60;
+  const ENTRY_MIN_DURATION_MS = 60000;
   const PROCESS_BAR_Y = 102;
   const PROCESS_BAR_HEIGHT = 10;
   const dayStart = new Date(date).setHours(0, 0, 0, 0);
+  const dayEnd = dayStart + 86400000;
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const suppressEntryClickRef = useRef(false);
   const pendingZoomAnchorRef = useRef<{ ratio: number; viewportOffset: number } | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const [visibleHours, setVisibleHours] = useState(() => {
@@ -174,11 +194,69 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
 
   const [dragStart, setDragStart] = React.useState<number | null>(null);
   const [dragEnd, setDragEnd] = React.useState<number | null>(null);
+  const [entryResize, setEntryResize] = React.useState<EntryResizeState | null>(null);
+
+  const entryBoundaryMap = useMemo(() => {
+    const sorted = [...timeEntries].sort((a, b) => a.start_time - b.start_time);
+    const map = new Map<number, { prevEnd: number; nextStart: number }>();
+
+    for (let i = 0; i < sorted.length; i += 1) {
+      const current = sorted[i];
+      const prevEnd = i > 0 ? sorted[i - 1].end_time : dayStart;
+      const nextStart = i < sorted.length - 1 ? sorted[i + 1].start_time : dayEnd;
+      map.set(current.id, { prevEnd, nextStart });
+    }
+
+    return map;
+  }, [timeEntries, dayStart, dayEnd]);
+
+  const beginEntryResize = React.useCallback((
+    entry: TimeEntry,
+    edge: EntryResizeEdge,
+    e: React.MouseEvent<SVGElement>
+  ) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    const bounds = entryBoundaryMap.get(entry.id);
+    const prevEnd = bounds?.prevEnd ?? dayStart;
+    const nextStart = bounds?.nextStart ?? dayEnd;
+
+    const minBoundary = edge === 'start'
+      ? prevEnd
+      : entry.start_time + ENTRY_MIN_DURATION_MS;
+    const maxBoundary = edge === 'start'
+      ? entry.end_time - ENTRY_MIN_DURATION_MS
+      : nextStart;
+
+    if (maxBoundary <= minBoundary) {
+      return;
+    }
+
+    suppressEntryClickRef.current = true;
+    setEntryResize({
+      entryId: entry.id,
+      edge,
+      originalStart: entry.start_time,
+      originalEnd: entry.end_time,
+      previewStart: entry.start_time,
+      previewEnd: entry.end_time,
+      minBoundary,
+      maxBoundary,
+    });
+
+    if (onHoverEnd) {
+      onHoverEnd();
+    }
+  }, [entryBoundaryMap, dayStart, dayEnd, onHoverEnd]);
 
   const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (entryResize) {
+      return;
+    }
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top;
-    if (y >= PROCESS_BAR_Y) {
+    if (y >= PROCESS_BAR_Y || y < ENTRY_BAR_Y) {
       return;
     }
     const x = e.clientX - rect.left;
@@ -192,6 +270,28 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     const timestamp = xToTime(x);
+
+    if (entryResize) {
+      const clampedTimestamp = Math.max(entryResize.minBoundary, Math.min(timestamp, entryResize.maxBoundary));
+      setEntryResize((current) => {
+        if (!current) {
+          return current;
+        }
+
+        if (current.edge === 'start') {
+          if (current.previewStart === clampedTimestamp) {
+            return current;
+          }
+          return { ...current, previewStart: clampedTimestamp };
+        }
+        if (current.previewEnd === clampedTimestamp) {
+          return current;
+        }
+        return { ...current, previewEnd: clampedTimestamp };
+      });
+      return;
+    }
+
     const isDragging = dragStart !== null;
 
     if (y >= PROCESS_BAR_Y) {
@@ -213,10 +313,26 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
   };
 
   const handleMouseUp = () => {
+    if (entryResize) {
+      const didChange = entryResize.previewStart !== entryResize.originalStart
+        || entryResize.previewEnd !== entryResize.originalEnd;
+      if (didChange && onEntryRangeChange) {
+        const resizedEntry = timeEntries.find((entry) => entry.id === entryResize.entryId);
+        if (resizedEntry) {
+          onEntryRangeChange(resizedEntry, entryResize.previewStart, entryResize.previewEnd);
+        }
+      }
+      setEntryResize(null);
+      window.setTimeout(() => {
+        suppressEntryClickRef.current = false;
+      }, 0);
+      return;
+    }
+
     if (dragStart !== null && dragEnd !== null && onDragSelect) {
       const start = Math.min(dragStart, dragEnd);
       const end = Math.max(dragStart, dragEnd);
-      if (end - start > 60000) { // At least 1 minute
+      if (end - start > ENTRY_MIN_DURATION_MS) { // At least 1 minute
         onDragSelect(start, end);
       }
     }
@@ -304,18 +420,24 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
   // Render time blocks
   const timeBlocks = useMemo(() => {
     return timeEntries.map((entry) => {
-      const x = timeToX(entry.start_time);
-      const blockWidth = Math.max(timeToX(entry.end_time) - x, 1);
+      const activeResize = entryResize?.entryId === entry.id ? entryResize : null;
+      const displayStart = activeResize ? activeResize.previewStart : entry.start_time;
+      const displayEnd = activeResize ? activeResize.previewEnd : entry.end_time;
+      const x = timeToX(displayStart);
+      const blockWidth = Math.max(timeToX(displayEnd) - x, 1);
       const color = entry.category_id
         ? (categoryMap.get(entry.category_id) ?? '#6b7280')
         : '#6b7280';
       const labelAreaWidth = Math.max(blockWidth - 12, 0);
       const labelLines = wrapLabelLines(entry.label, labelAreaWidth, 3);
+      const handleWidth = Math.min(10, Math.max(6, blockWidth / 2));
+      const handleY = ENTRY_BAR_Y + 2;
+      const handleHeight = Math.max(ENTRY_BAR_HEIGHT - 4, 0);
 
       return (
         <g
           key={entry.id}
-          className="time-entry-block"
+          className={`time-entry-block${activeResize ? ' is-resizing' : ''}`}
           style={{ cursor: 'pointer' }}
           onMouseDown={(e) => {
             // Prevent timeline drag-selection when interacting with an existing entry block.
@@ -323,6 +445,10 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
           }}
           onClick={(e) => {
             e.stopPropagation();
+            if (suppressEntryClickRef.current) {
+              suppressEntryClickRef.current = false;
+              return;
+            }
             if (onEntryClick) {
               onEntryClick(entry);
             }
@@ -340,13 +466,31 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
           </defs>
           <rect
             x={x}
-            y={20}
+            y={ENTRY_BAR_Y}
             width={blockWidth}
-            height={60}
+            height={ENTRY_BAR_HEIGHT}
             fill={color}
             stroke="#333"
             strokeWidth={1}
             rx={4}
+          />
+          <rect
+            className="time-entry-resize-handle start"
+            x={x}
+            y={handleY}
+            width={handleWidth}
+            height={handleHeight}
+            rx={3}
+            onMouseDown={(e) => beginEntryResize(entry, 'start', e)}
+          />
+          <rect
+            className="time-entry-resize-handle end"
+            x={x + blockWidth - handleWidth}
+            y={handleY}
+            width={handleWidth}
+            height={handleHeight}
+            rx={3}
+            onMouseDown={(e) => beginEntryResize(entry, 'end', e)}
           />
           <text
             x={x + 6}
@@ -367,7 +511,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
         </g>
       );
     });
-  }, [timeEntries, onEntryClick, categoryMap, timelineWidth, dayStart, wrapLabelLines]);
+  }, [timeEntries, onEntryClick, categoryMap, timelineWidth, dayStart, wrapLabelLines, entryResize, beginEntryResize]);
 
   const processBarBlocks = useMemo(() => {
     return processRuns
@@ -458,9 +602,9 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
     return (
       <rect
         x={x}
-        y={20}
+        y={ENTRY_BAR_Y}
         width={blockWidth}
-        height={60}
+        height={ENTRY_BAR_HEIGHT}
         fill="rgba(33, 150, 243, 0.3)"
         stroke="#2196F3"
         strokeWidth={2}
@@ -504,7 +648,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
           <svg
             width={timelineWidth}
             height={height}
-            style={{ cursor: 'crosshair' }}
+            style={{ cursor: entryResize ? 'ew-resize' : 'crosshair' }}
             className="timeline-svg"
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}

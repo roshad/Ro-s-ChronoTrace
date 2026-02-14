@@ -315,6 +315,28 @@ export const TimelineView: React.FC = () => {
     updateMutation.mutate({ id, updates });
   };
 
+  const handleEntryRangeChange = (entry: TimeEntry, start: number, end: number) => {
+    if (activeTimer?.entryId === entry.id) {
+      alert('请先停止当前计时，再拖拽调整该条目的时间范围。');
+      return;
+    }
+
+    updateMutation.mutate(
+      {
+        id: entry.id,
+        updates: {
+          start_time: start,
+          end_time: end,
+        },
+      },
+      {
+        onError: (error) => {
+          alert(formatUpdateEntryError(error));
+        },
+      }
+    );
+  };
+
   const handleDeleteEntry = (id: number) => {
     deleteMutation.mutate(id);
   };
@@ -785,6 +807,7 @@ export const TimelineView: React.FC = () => {
             screenshotTimestamps={screenshotTimestamps}
             processRuns={processRuns}
             onDragSelect={handleDragSelect}
+            onEntryRangeChange={handleEntryRangeChange}
             onHover={handleHover}
             onHoverEnd={handleHoverEnd}
             onEntryClick={handleEntryClick}
@@ -852,6 +875,7 @@ export const TimelineView: React.FC = () => {
                 <strong>时间轴操作</strong>
                 <ul>
                   <li>在时间轴上按住鼠标拖拽，可快速创建条目。</li>
+                  <li>拖拽已有条目左右边缘，可快速调整时间范围。</li>
                   <li>点击已有条目，可编辑、删除或重新开始计时。</li>
                   <li>鼠标悬停时间轴，可查看对应时间的截图预览。</li>
                 </ul>

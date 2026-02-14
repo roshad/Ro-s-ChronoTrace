@@ -27,5 +27,5 @@ Rust (Tauri 2.x), TypeScript 5.x (React 18.x): Follow standard conventions
 - Toggl-like Features: Added real-time timer input and item categorization support.
 
 <!-- MANUAL ADDITIONS START -->
-持续完成plan.md中含有`- [ ]`行。
+持续完成plan.md中含有`- [ ]`行的需求。
 <!-- MANUAL ADDITIONS END -->

@@ -77,6 +77,41 @@ npm run tauri:build
 # 输出目录: src-tauri/target/release/bundle/
 ```
 
+## 📦 发布 EXE 到 GitHub
+
+项目已内置工作流：`.github/workflows/release-exe.yml`。
+
+### 一次性配置
+
+1. 在 GitHub 创建仓库（例如 `toggl_like`）。
+2. 关联并推送本地代码：
+
+```bash
+git remote add origin https://github.com/<你的用户名>/toggl_like.git
+git branch -M main
+git push -u origin main
+```
+
+### 发布方式 A（推荐）：打 Tag 自动发布
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+推送后会自动运行 GitHub Actions，并在 `Releases` 里生成可下载的 `*.exe` 安装包（NSIS）。
+
+### 发布方式 B：手动触发
+
+1. 打开 GitHub 仓库的 `Actions`。
+2. 选择 `Release Windows EXE`。
+3. 点击 `Run workflow`，输入 `release_tag`（例如 `v0.1.1`）。
+
+### 给用户下载链接
+
+发布完成后，分享：
+- `https://github.com/<你的用户名>/toggl_like/releases`
+
 ## 📁 项目结构
 
 ```
