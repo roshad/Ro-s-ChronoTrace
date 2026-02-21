@@ -7,6 +7,8 @@ mod idle;
 mod app_settings;
 mod types;
 
+use tauri::Manager;
+
 fn main() {
     // Initialize database on startup
     if let Err(e) = data::init_database() {
@@ -42,6 +44,18 @@ fn main() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
+        .setup(|app| {
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(tokio::time::Duration::from_millis(2500)).await;
+                if let Some(window) = app_handle.get_webview_window("main") {
+                    if let Err(err) = window.show() {
+                        eprintln!("Fallback show window failed: {}", err);
+                    }
+                }
+            });
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             data::get_time_entries,
             data::get_time_entries_by_range,

@@ -683,13 +683,74 @@ export const TimelineView: React.FC = () => {
     const tooltipHeight = 290;
     const gap = 14;
     const margin = 10;
-    const maxX = window.innerWidth - tooltipWidth - margin;
-    const maxY = window.innerHeight - tooltipHeight - margin;
+    const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
+    const maxX = Math.max(margin, window.innerWidth - tooltipWidth - margin);
+    const maxY = Math.max(margin, window.innerHeight - tooltipHeight - margin);
 
-    return {
-      x: Math.max(margin, Math.min(maxX, point.x + gap)),
-      y: Math.max(margin, Math.min(maxY, point.y + gap)),
+    let x = clamp(point.x + gap, margin, maxX);
+    let y = clamp(point.y + gap, margin, maxY);
+
+    const timelineScrollContainer = document.querySelector<HTMLElement>('[data-testid="timeline-scroll-container"]');
+    if (!timelineScrollContainer) {
+      return { x, y };
+    }
+
+    const timelineRect = timelineScrollContainer.getBoundingClientRect();
+    const overlapAreaAt = (candidateX: number, candidateY: number) => {
+      const tooltipLeft = candidateX;
+      const tooltipRight = candidateX + tooltipWidth;
+      const tooltipTop = candidateY;
+      const tooltipBottom = candidateY + tooltipHeight;
+
+      const overlapWidth = Math.max(
+        0,
+        Math.min(tooltipRight, timelineRect.right) - Math.max(tooltipLeft, timelineRect.left)
+      );
+      const overlapHeight = Math.max(
+        0,
+        Math.min(tooltipBottom, timelineRect.bottom) - Math.max(tooltipTop, timelineRect.top)
+      );
+
+      return overlapWidth * overlapHeight;
     };
+
+    if (overlapAreaAt(x, y) === 0) {
+      return { x, y };
+    }
+
+    const candidateAboveY = clamp(timelineRect.top - tooltipHeight - gap, margin, maxY);
+    const candidateBelowY = clamp(timelineRect.bottom + gap, margin, maxY);
+    const aboveOverlap = overlapAreaAt(x, candidateAboveY);
+    const belowOverlap = overlapAreaAt(x, candidateBelowY);
+
+    if (aboveOverlap === 0 && belowOverlap === 0) {
+      y = Math.abs(point.y - candidateAboveY) <= Math.abs(point.y - candidateBelowY)
+        ? candidateAboveY
+        : candidateBelowY;
+    } else if (aboveOverlap === 0 || belowOverlap === 0) {
+      y = aboveOverlap === 0 ? candidateAboveY : candidateBelowY;
+    } else {
+      y = aboveOverlap <= belowOverlap ? candidateAboveY : candidateBelowY;
+    }
+
+    if (overlapAreaAt(x, y) === 0) {
+      return { x, y };
+    }
+
+    const candidateLeftX = clamp(timelineRect.left - tooltipWidth - gap, margin, maxX);
+    const candidateRightX = clamp(timelineRect.right + gap, margin, maxX);
+    const leftOverlap = overlapAreaAt(candidateLeftX, y);
+    const rightOverlap = overlapAreaAt(candidateRightX, y);
+
+    if (leftOverlap === rightOverlap) {
+      x = Math.abs(point.x - candidateLeftX) <= Math.abs(point.x - candidateRightX)
+        ? candidateLeftX
+        : candidateRightX;
+    } else {
+      x = leftOverlap < rightOverlap ? candidateLeftX : candidateRightX;
+    }
+
+    return { x, y };
   };
 
   useEffect(() => {
