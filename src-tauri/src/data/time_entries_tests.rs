@@ -234,4 +234,32 @@ mod cases {
         let result = create_time_entry_impl(&conn, &input2);
         assert!(result.is_ok());
     }
+
+    #[test]
+    fn test_overlap_detection_with_cross_day_running_entry() {
+        let conn = setup_test_db();
+
+        // Long-running entry: 2026-01-17 23:00 -> 2026-01-18 10:00
+        let long_running = TimeEntryInput {
+            start_time: 1705532400000,
+            end_time: 1705572000000,
+            label: "Long Running".to_string(),
+            color: None,
+            category_id: None,
+        };
+        create_time_entry_impl(&conn, &long_running).unwrap();
+
+        // Entry on next day that falls inside the long-running period: 2026-01-18 09:00 -> 09:30
+        let next_day_overlap = TimeEntryInput {
+            start_time: 1705568400000,
+            end_time: 1705570200000,
+            label: "Next Day Task".to_string(),
+            color: None,
+            category_id: None,
+        };
+
+        let result = create_time_entry_impl(&conn, &next_day_overlap);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("overlaps"));
+    }
 }

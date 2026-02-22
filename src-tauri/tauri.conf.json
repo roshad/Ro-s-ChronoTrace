@@ -30,6 +30,12 @@
     "targets": "all"
   },
   "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/roshad/toggl_like/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDcyRUJGMTdGNkY5MUQ0NDMKUldSRDFKRnZmL0hyY2pnb1RSYXBNYkRjT01WZWFpakNzRm9oeHAwYytrVzREeXBMczdFN1U0OHMK"
+    },
     "shell": {
       "open": "^((mailto:|tel:|https?://).+|file://.+|[a-zA-Z]:\\\\\\\\.+)$"
     }

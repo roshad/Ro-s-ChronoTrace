@@ -112,6 +112,36 @@ git push origin v0.1.0
 发布完成后，分享：
 - `https://github.com/<你的用户名>/toggl_like/releases`
 
+## 🔄 自动更新（已接入）
+
+应用会在启动时自动检查 GitHub Release 的 `latest.json`，检测到新版本后自动下载、安装并重启。
+
+当前更新源：
+- `https://github.com/roshad/toggl_like/releases/latest/download/latest.json`
+
+### 一次性配置（必须）
+
+1. 在本机生成签名密钥（若还没有）：
+
+```bash
+npx tauri signer generate -w %USERPROFILE%\\.tauri\\digital-diary.key
+```
+
+2. 将私钥内容配置到 项目 Settings Secrets and variables - actions -New repository secret：
+- `TAURI_SIGNING_PRIVATE_KEY`: 私钥文件全文（例如 `%USERPROFILE%\\.tauri\\digital-diary.key` 的内容）
+- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`: 私钥密码（如果生成时未设置密码，可留空）
+
+3. 确认 `src-tauri/tauri.conf.json` 中 `plugins.updater.pubkey` 与你的私钥对应的公钥一致。
+
+### 发布行为
+
+当你推送新 tag（例如 `v0.1.1`）后，Release 工作流会：
+- 构建安装包
+- 生成签名文件
+- 更新并上传 `latest.json`
+
+客户端下次启动会自动更新到最新版。
+
 ## 📁 项目结构
 
 ```

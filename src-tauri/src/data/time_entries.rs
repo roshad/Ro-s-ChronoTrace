@@ -86,35 +86,17 @@ pub fn create_time_entry_impl(conn: &Connection, entry: &TimeEntryInput) -> AppR
         return Err("Label cannot be empty".to_string());
     }
 
-    // Check for overlapping entries on the same day
-    let start_of_day = entry.start_time - (entry.start_time % 86400000);
-    let end_of_day = start_of_day + 86400000;
-
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, start_time, end_time FROM time_entries 
-         WHERE start_time >= ? AND start_time < ?",
+    let overlap_count: i64 = conn
+        .query_row(
+            "SELECT COUNT(1) FROM time_entries
+             WHERE start_time < ?1 AND end_time > ?2",
+            params![entry.end_time, entry.start_time],
+            |row| row.get(0),
         )
-        .map_err(|e| format!("Failed to prepare overlap check query: {}", e))?;
+        .map_err(|e| format!("Failed to check overlapping entries: {}", e))?;
 
-    let entry_iter = stmt
-        .query_map(params![start_of_day, end_of_day], |row| {
-            Ok((
-                row.get::<_, i64>(0)?,
-                row.get::<_, i64>(1)?,
-                row.get::<_, i64>(2)?,
-            ))
-        })
-        .map_err(|e| format!("Failed to query existing entries: {}", e))?;
-
-    for existing_entry in entry_iter {
-        let (_, existing_start, existing_end) =
-            existing_entry.map_err(|e| format!("Failed to map existing entry: {}", e))?;
-
-        // Check for overlap: (StartA < EndB) and (EndA > StartB)
-        if entry.start_time < existing_end && entry.end_time > existing_start {
-            return Err("Time entry overlaps with an existing entry on the same day".to_string());
-        }
+    if overlap_count > 0 {
+        return Err("Time entry overlaps with an existing entry".to_string());
     }
 
     conn.execute(

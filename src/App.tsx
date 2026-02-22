@@ -1,5 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { TimelineView } from './pages/TimelineView';
+import { runAutoUpdater } from './services/updater';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -11,6 +13,10 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  useEffect(() => {
+    void runAutoUpdater();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TimelineView />
