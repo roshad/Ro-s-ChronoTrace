@@ -38,8 +38,19 @@ if (!version) {
 }
 
 run("git add package.json package-lock.json src-tauri/tauri.conf.json src-tauri/Cargo.toml");
-run(`git commit -m "chore: release v${version}"`);
-run(`git tag v${version}`);
+const stagedFiles = runCapture("git diff --cached --name-only");
+if (stagedFiles) {
+  run(`git commit -m "chore: release v${version}"`);
+} else {
+  console.log(`\nNo version file changes to commit for v${version}.`);
+}
+
+const hasLocalTag = runCapture(`git tag --list v${version}`) !== "";
+if (!hasLocalTag) {
+  run(`git tag v${version}`);
+} else {
+  console.log(`\nTag v${version} already exists locally, skipping tag creation.`);
+}
 
 const currentBranch = runCapture("git rev-parse --abbrev-ref HEAD");
 if (!currentBranch || currentBranch === "HEAD") {
