@@ -1,6 +1,6 @@
 ﻿# Digital Diary
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/yourusername/digital-diary)
+[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](https://github.com/yourusername/digital-diary)
 [![Tauri](https://img.shields.io/badge/Tauri-2.x-FFC131?logo=tauri)](https://tauri.app)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev)
 [![Rust](https://img.shields.io/badge/Rust-1.75+-000000?logo=rust)](https://www.rust-lang.org)
@@ -91,21 +91,11 @@ git remote add origin https://github.com/<你的用户名>/toggl_like.git
 git branch -M main
 git push -u origin main
 ```
+### 版本更新
 
-### 发布方式 A（推荐）：打 Tag 自动发布
-
-```bash
-git tag v0.1.0
-git push origin v0.1.0
-```
-
-推送后会自动运行 GitHub Actions，并在 `Releases` 里生成可下载的 `*.exe` 安装包（NSIS）。
-
-### 发布方式 B：手动触发
-
-1. 打开 GitHub 仓库的 `Actions`。
-2. 选择 `Release Windows EXE`。
-3. 点击 `Run workflow`，输入 `release_tag`（例如 `v0.1.1`）。
+AI默认生成工作流触发条件“push tags: v*”（release-exe.yml）。称是常见方案。
+[Tauri v2 官方建议里](https://v2.tauri.app/distribute/#versioning)，应用版本以 tauri.conf.json > version 为主，而且这个字段可以直接指向 package.json（即单一来源）：
+让AI改为运行release脚本一键完成。不改多处。
 
 ### 给用户下载链接
 

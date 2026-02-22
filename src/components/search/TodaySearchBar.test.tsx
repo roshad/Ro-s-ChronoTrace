@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { TodaySearchBar } from './TodaySearchBar';
@@ -18,7 +18,7 @@ const mockSearchActivitiesByRange = api.searchActivitiesByRange as jest.MockedFu
 const mockGetCategories = api.getCategories as jest.MockedFunction<typeof api.getCategories>;
 const mockGetTimeEntriesByRange = api.getTimeEntriesByRange as jest.MockedFunction<typeof api.getTimeEntriesByRange>;
 
-const QUERY_TEXT = '吃药';
+const QUERY_TEXT = '鍚冭嵂';
 const WINDOW_QUERY = 'anki';
 
 const renderWithQueryClient = (component: React.ReactElement) => {
@@ -46,6 +46,7 @@ const advanceTimers = (ms: number) => {
 describe('TodaySearchBar', () => {
   beforeEach(() => {
     jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-02-22T10:00:00+08:00'));
     jest.clearAllMocks();
     window.localStorage.clear();
 
@@ -166,4 +167,31 @@ describe('TodaySearchBar', () => {
       expect(screen.getByText('1小时')).toBeInTheDocument();
     });
   });
+
+  it('refreshes stats automatically when selected range includes now', async () => {
+    renderWithQueryClient(<TodaySearchBar date={new Date('2026-02-22T10:00:00+08:00')} />);
+
+    await waitFor(() => {
+      expect(mockGetTimeEntriesByRange).toHaveBeenCalledTimes(1);
+    });
+
+    advanceTimers(5000);
+
+    await waitFor(() => {
+      expect(mockGetTimeEntriesByRange).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('does not poll stats for past date ranges', async () => {
+    renderWithQueryClient(<TodaySearchBar date={new Date('2025-02-22T10:00:00+08:00')} />);
+
+    await waitFor(() => {
+      expect(mockGetTimeEntriesByRange).toHaveBeenCalledTimes(1);
+    });
+
+    advanceTimers(20000);
+
+    expect(mockGetTimeEntriesByRange).toHaveBeenCalledTimes(1);
+  });
 });
+

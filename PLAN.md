@@ -50,10 +50,10 @@
 # 非计划todo
 
 # Bugfix:
-- 260222现在本地tauri dev的时候，有个行为进行了数日，点结束会提示行为重叠。
-- 清除浏览器本地存储即可
+- 260222本地tauri dev的时候，有个行为进行了数日，点结束会提示行为重叠。
+	- 清除浏览器本地存储即可
 - [x] 😭：花了比较多力气
-
+- [ ] 存储的行为的统计不实时更新，切换时间范围后才更新
 - [x] 260221 启动时显示白屏，过几秒才有画面
 - [x] 260213 删除当前正在进行的行为后console报错`TimelineView.tsx:252  Failed to update running timer entry: Failed to fetch time entry: Query returned no rows`
 - [x] 260213 关键字"药"搜不到"吃药"

@@ -11,6 +11,7 @@ type RangeType = 'day' | 'month' | 'year' | 'all';
 
 const SAVED_SEARCHES_STORAGE_KEY = 'today-search-saved-items';
 const MAX_SAVED_SEARCHES = 12;
+const LIVE_REFRESH_INTERVAL_MS = 5000;
 
 const getUtf8ByteLength = (value: string): number => {
   const normalized = value.trim();
@@ -107,6 +108,11 @@ export const TodaySearchBar: React.FC<RangeSearchBarProps> = ({ date }) => {
     return timeRange;
   }, [range, timeRange]);
 
+  const shouldLiveRefresh = useMemo(() => {
+    const now = Date.now();
+    return now >= statsRange.start && now < statsRange.end;
+  }, [statsRange.end, statsRange.start]);
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setDebouncedQuery(query);
@@ -131,6 +137,8 @@ export const TodaySearchBar: React.FC<RangeSearchBarProps> = ({ date }) => {
       return api.searchActivitiesByRange(normalizedQuery, timeRange.start, timeRange.end);
     },
     enabled: canSearch,
+    refetchInterval: canSearch && shouldLiveRefresh ? LIVE_REFRESH_INTERVAL_MS : false,
+    refetchOnWindowFocus: true,
   });
 
   const { data: categories = [] } = useQuery({
@@ -141,6 +149,8 @@ export const TodaySearchBar: React.FC<RangeSearchBarProps> = ({ date }) => {
   const { data: statsEntries = [], isLoading: isLoadingStats } = useQuery({
     queryKey: ['statsEntries', range, statsRange.start, statsRange.end],
     queryFn: () => api.getTimeEntriesByRange(statsRange.start, statsRange.end),
+    refetchInterval: shouldLiveRefresh ? LIVE_REFRESH_INTERVAL_MS : false,
+    refetchOnWindowFocus: true,
   });
 
   const savedSearchQueries = useQueries({
@@ -153,6 +163,8 @@ export const TodaySearchBar: React.FC<RangeSearchBarProps> = ({ date }) => {
         return api.searchActivitiesByRange(savedQuery, timeRange.start, timeRange.end);
       },
       enabled: getUtf8ByteLength(savedQuery) >= 2,
+      refetchInterval: shouldLiveRefresh ? LIVE_REFRESH_INTERVAL_MS : false,
+      refetchOnWindowFocus: true,
     })),
   });
 

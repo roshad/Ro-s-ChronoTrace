@@ -10,6 +10,12 @@
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
+    "version:sync": "node ./scripts/sync-version.mjs",
+    "version": "npm run version:sync && git add src-tauri/tauri.conf.json src-tauri/Cargo.toml",
+    "release:patch": "node ./scripts/release.mjs patch",
+    "release:minor": "node ./scripts/release.mjs minor",
+    "release:major": "node ./scripts/release.mjs major",
+    "release:version": "node ./scripts/release.mjs",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
