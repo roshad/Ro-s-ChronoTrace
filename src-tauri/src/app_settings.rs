@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+﻿use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -42,7 +42,7 @@ impl ScreenshotSettings {
 fn get_data_directory() -> Result<PathBuf, String> {
     let local_data =
         dirs::data_local_dir().ok_or_else(|| "Failed to get local data directory".to_string())?;
-    let data_dir = local_data.join("DigitalDiary");
+    let data_dir = local_data.join("RosChronoTrace");
     fs::create_dir_all(&data_dir).map_err(|e| format!("Failed to create data directory: {}", e))?;
     Ok(data_dir)
 }
@@ -133,3 +133,4 @@ pub async fn resolve_screenshot_file_path_cmd(stored_path: String) -> Result<Str
     let resolved = resolve_screenshot_file_path(&stored_path)?;
     Ok(resolved.to_string_lossy().to_string())
 }
+

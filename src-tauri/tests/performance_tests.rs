@@ -1,4 +1,4 @@
-//! Performance Tests for Digital Diary
+//! Performance Tests for Ro's ChronoTrace
 //!
 //! This module contains performance benchmarks for:
 //! - Task 4.1: Memory Usage Budget
@@ -327,7 +327,7 @@ impl MemoryUsageTests {
 
 /// Generate comprehensive performance report
 pub fn generate_performance_report(results: &[PerformanceResult]) -> String {
-    let mut report = String::from("=== Digital Diary Performance Report ===\n\n");
+    let mut report = String::from("=== Ro's ChronoTrace Performance Report ===\n\n");
 
     let passed = results.iter().filter(|r| r.passed).count();
     let total = results.len();

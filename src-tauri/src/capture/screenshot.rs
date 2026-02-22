@@ -1,4 +1,4 @@
-use chrono::Local;
+﻿use chrono::Local;
 use base64::Engine;
 use std::fs;
 use std::path::PathBuf;
@@ -207,7 +207,7 @@ fn get_data_directory() -> Result<PathBuf, String> {
     let local_data =
         dirs::data_local_dir().ok_or_else(|| "Failed to get local data directory".to_string())?;
 
-    let data_dir = local_data.join("DigitalDiary");
+    let data_dir = local_data.join("RosChronoTrace");
 
     fs::create_dir_all(&data_dir).map_err(|e| format!("Failed to create data directory: {}", e))?;
 
@@ -298,7 +298,7 @@ fn resolve_absolute_screenshot_path(stored_path: &str) -> Option<PathBuf> {
         return Some(path);
     }
     let local_data = dirs::data_local_dir()?;
-    Some(local_data.join("DigitalDiary").join(stored_path))
+    Some(local_data.join("RosChronoTrace").join(stored_path))
 }
 
 #[cfg(target_os = "windows")]
@@ -399,3 +399,4 @@ fn downscale_rgba_nearest(
 
     (dst, dst_w, dst_h)
 }
+

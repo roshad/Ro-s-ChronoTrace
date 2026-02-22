@@ -20,6 +20,10 @@ function run(command) {
   execSync(command, { cwd: root, stdio: "inherit" });
 }
 
+function runCapture(command) {
+  return execSync(command, { cwd: root, stdio: "pipe" }).toString().trim();
+}
+
 function readVersion() {
   const pkgPath = path.join(root, "package.json");
   const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
@@ -36,6 +40,13 @@ if (!version) {
 run("git add package.json package-lock.json src-tauri/tauri.conf.json src-tauri/Cargo.toml");
 run(`git commit -m "chore: release v${version}"`);
 run(`git tag v${version}`);
-run("git push origin main --follow-tags");
+
+const currentBranch = runCapture("git rev-parse --abbrev-ref HEAD");
+if (!currentBranch || currentBranch === "HEAD") {
+  throw new Error("Cannot determine current branch (detached HEAD).");
+}
+
+run(`git push origin ${currentBranch}`);
+run(`git push origin v${version}`);
 
 console.log(`\nRelease completed: v${version}`);

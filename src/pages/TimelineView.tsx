@@ -1017,9 +1017,9 @@ export const TimelineView: React.FC = () => {
                   value={settingsForm.storage_dir ?? ''}
                   onChange={(e) => setSettingsForm((prev) => ({ ...prev, storage_dir: e.target.value }))}
                   className="input"
-                  placeholder="例如：D:\\DigitalDiaryShots"
+                  placeholder="例如：D:\\RosChronoTraceShots"
                 />
-                <div className="field-help">默认目录：`%LOCALAPPDATA%\\DigitalDiary\\screenshots`</div>
+                <div className="field-help">默认目录：`%LOCALAPPDATA%\\RosChronoTrace\\screenshots`</div>
               </div>
             </div>
 
@@ -1063,4 +1063,5 @@ export const TimelineView: React.FC = () => {
     </div>
   );
 };
+
 

@@ -1,5 +1,5 @@
 [package]
-name = "digital-diary"
+name = "ros-chronotrace"
 version = "0.1.1"
 description = "Desktop time-tracking application with automated context capture"
 authors = ["you"]

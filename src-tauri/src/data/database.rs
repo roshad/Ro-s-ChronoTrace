@@ -1,4 +1,4 @@
-use dirs::home_dir;
+﻿use dirs::home_dir;
 use rusqlite::{Connection, Result};
 use std::path::PathBuf;
 
@@ -7,7 +7,7 @@ pub fn get_database_path() -> Result<PathBuf, String> {
         .ok_or("Failed to get home directory")?
         .join("AppData")
         .join("Local")
-        .join("DigitalDiary");
+        .join("RosChronoTrace");
 
     std::fs::create_dir_all(&data_dir)
         .map_err(|e| format!("Failed to create data directory: {}", e))?;
@@ -80,3 +80,4 @@ pub fn initialize_database(db_path: &std::path::Path) -> Result<(), String> {
 
     Ok(())
 }
+

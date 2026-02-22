@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2.0.0",
-  "productName": "Digital Diary",
+  "productName": "Ro's ChronoTrace",
   "version": "0.1.1",
-  "identifier": "com.digitaldiary.app",
+  "identifier": "com.ros.chronotrace.app",
   "build": {
     "beforeDevCommand": "node ./scripts/start-vite-if-needed.mjs",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Digital Diary",
+        "title": "Ro's ChronoTrace",
         "width": 1200,
         "height": 800,
         "visible": false,

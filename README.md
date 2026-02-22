@@ -1,6 +1,6 @@
-﻿# Digital Diary
+﻿# Ro's ChronoTrace
 
-[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](https://github.com/yourusername/digital-diary)
+[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](https://github.com/yourusername/ros-chronotrace)
 [![Tauri](https://img.shields.io/badge/Tauri-2.x-FFC131?logo=tauri)](https://tauri.app)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev)
 [![Rust](https://img.shields.io/badge/Rust-1.75+-000000?logo=rust)](https://www.rust-lang.org)
@@ -114,11 +114,11 @@ AI默认生成工作流触发条件“push tags: v*”（release-exe.yml）。�
 1. 在本机生成签名密钥（若还没有）：
 
 ```bash
-npx tauri signer generate -w %USERPROFILE%\\.tauri\\digital-diary.key
+npx tauri signer generate -w %USERPROFILE%\\.tauri\\ros-chronotrace.key
 ```
 
 2. 将私钥内容配置到 项目 Settings Secrets and variables - actions -New repository secret：
-- `TAURI_SIGNING_PRIVATE_KEY`: 私钥文件全文（例如 `%USERPROFILE%\\.tauri\\digital-diary.key` 的内容）
+- `TAURI_SIGNING_PRIVATE_KEY`: 私钥文件全文（例如 `%USERPROFILE%\\.tauri\\ros-chronotrace.key` 的内容）
 - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`: 私钥密码（如果生成时未设置密码，可留空）
 
 3. 确认 `src-tauri/tauri.conf.json` 中 `plugins.updater.pubkey` 与你的私钥对应的公钥一致。
@@ -186,8 +186,8 @@ toggl_like/
 ## 💾 数据存储
 
 ### 数据库位置
-- **数据库文件**: `%LocalAppData%\DigitalDiary\database.db`
-- **截图存储**: `%LocalAppData%\DigitalDiary\screenshots\YYYY\MM\DD\`
+- **数据库文件**: `%LocalAppData%\\RosChronoTrace\\database.db`
+- **截图存储**: `%LocalAppData%\\RosChronoTrace\\screenshots\\YYYY\\MM\\DD\\`
 
 ### 数据库表结构
 
@@ -358,3 +358,4 @@ npm run build
 **版本**: 0.1.0 (MVP)  
 **最后更新**: 2026-01-28  
 **状态**: ✅ Phase 0-5 已完成，可构建和测试
+
