@@ -112,6 +112,8 @@ export const TodaySearchBar: React.FC<RangeSearchBarProps> = ({ date }) => {
     const now = Date.now();
     return now >= statsRange.start && now < statsRange.end;
   }, [statsRange.end, statsRange.start]);
+  const liveRefetchInterval: number | false = shouldLiveRefresh ? LIVE_REFRESH_INTERVAL_MS : false;
+  const searchRefetchInterval: number | false = canSearch && shouldLiveRefresh ? LIVE_REFRESH_INTERVAL_MS : false;
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -137,7 +139,7 @@ export const TodaySearchBar: React.FC<RangeSearchBarProps> = ({ date }) => {
       return api.searchActivitiesByRange(normalizedQuery, timeRange.start, timeRange.end);
     },
     enabled: canSearch,
-    refetchInterval: canSearch && shouldLiveRefresh ? LIVE_REFRESH_INTERVAL_MS : false,
+    refetchInterval: searchRefetchInterval,
     refetchOnWindowFocus: true,
   });
 
@@ -149,7 +151,7 @@ export const TodaySearchBar: React.FC<RangeSearchBarProps> = ({ date }) => {
   const { data: statsEntries = [], isLoading: isLoadingStats } = useQuery({
     queryKey: ['statsEntries', range, statsRange.start, statsRange.end],
     queryFn: () => api.getTimeEntriesByRange(statsRange.start, statsRange.end),
-    refetchInterval: shouldLiveRefresh ? LIVE_REFRESH_INTERVAL_MS : false,
+    refetchInterval: liveRefetchInterval,
     refetchOnWindowFocus: true,
   });
 
@@ -163,7 +165,7 @@ export const TodaySearchBar: React.FC<RangeSearchBarProps> = ({ date }) => {
         return api.searchActivitiesByRange(savedQuery, timeRange.start, timeRange.end);
       },
       enabled: getUtf8ByteLength(savedQuery) >= 2,
-      refetchInterval: shouldLiveRefresh ? LIVE_REFRESH_INTERVAL_MS : false,
+      refetchInterval: liveRefetchInterval,
       refetchOnWindowFocus: true,
     })),
   });

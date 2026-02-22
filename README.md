@@ -1,6 +1,6 @@
 ﻿# Ro's ChronoTrace
 
-[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](https://github.com/yourusername/ros-chronotrace)
+[![Version](https://img.shields.io/github/v/release/roshad/Ro-s-ChronoTrace?sort=semver)](https://github.com/roshad/Ro-s-ChronoTrace/releases)
 [![Tauri](https://img.shields.io/badge/Tauri-2.x-FFC131?logo=tauri)](https://tauri.app)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev)
 [![Rust](https://img.shields.io/badge/Rust-1.75+-000000?logo=rust)](https://www.rust-lang.org)
