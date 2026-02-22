@@ -107,7 +107,7 @@ AI默认生成工作流触发条件“push tags: v*”（release-exe.yml）。�
 应用会在启动时自动检查 GitHub Release 的 `latest.json`，检测到新版本后自动下载、安装并重启。
 
 当前更新源：
-- `https://github.com/roshad/toggl_like/releases/latest/download/latest.json`
+- `https://github.com/roshad/Ro-s-ChronoTrace/releases/latest/download/latest.json`
 
 ### 一次性配置（必须）
 
@@ -358,4 +358,5 @@ npm run build
 **版本**: 0.1.0 (MVP)  
 **最后更新**: 2026-01-28  
 **状态**: ✅ Phase 0-5 已完成，可构建和测试
+
 
