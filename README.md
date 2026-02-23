@@ -87,7 +87,7 @@ npm run tauri:build
 2. 关联并推送本地代码：
 
 ```bash
-git remote add origin https://github.com/<你的用户名>/toggl_like.git
+git remote add origin https://github.com/<你的用户名>/Ro-s-ChronoTrace.git
 git branch -M main
 git push -u origin main
 ```
@@ -100,7 +100,7 @@ AI默认生成工作流触发条件“push tags: v*”（release-exe.yml）。�
 ### 给用户下载链接
 
 发布完成后，分享：
-- `https://github.com/<你的用户名>/toggl_like/releases`
+- `https://github.com/<你的用户名>/Ro-s-ChronoTrace/releases`
 
 ## 🔄 自动更新（已接入）
 
