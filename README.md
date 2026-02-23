@@ -99,7 +99,7 @@ AI默认生成工作流触发条件“push tags: v*”（release-exe.yml）。�
 1. 在本机生成带密码的签名密钥（建议使用专用发布密码）：
 
 ```bash
-npx tauri signer generate --ci -f -w %USERPROFILE%\\.tauri\\ros-chronotrace.key -p "<你的强密码>"
+npx tauri signer generate --ci -f -w %USERPROFILE%\\.tauri\\ros-chronotrace.key -p '<你的强密码>'
 ```
 
 2. 将私钥内容配置到 项目 Settings Secrets and variables - actions -New repository secret：
@@ -109,8 +109,10 @@ npx tauri signer generate --ci -f -w %USERPROFILE%\\.tauri\\ros-chronotrace.key 
 3. 本地快速验证密码与私钥是否匹配（可选）：
 
 ```bash
-npx tauri signer sign -f %USERPROFILE%\\.tauri\\ros-chronotrace.key -p "<你的强密码>" README.md
+npx tauri signer sign -f %USERPROFILE%\\.tauri\\ros-chronotrace.key -p '<你的强密码>' README.md
 ```
+
+注意：在 PowerShell 中密码若包含 `$`，必须使用单引号，不能用双引号。
 
 4. 将公钥同步到 `src-tauri/tauri.conf.json`（避免手动复制出错）：
 

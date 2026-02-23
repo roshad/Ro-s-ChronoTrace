@@ -40,6 +40,28 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Validate updater signing secrets
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          if (-not $env:TAURI_SIGNING_PRIVATE_KEY) {
+            throw "Missing TAURI_SIGNING_PRIVATE_KEY secret."
+          }
+          if (-not $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD) {
+            throw "Missing TAURI_SIGNING_PRIVATE_KEY_PASSWORD secret."
+          }
+
+          $keyPath = Join-Path $env:RUNNER_TEMP "updater-private.key"
+          $testPath = Join-Path $env:RUNNER_TEMP "updater-secret-check.txt"
+
+          [System.IO.File]::WriteAllText($keyPath, $env:TAURI_SIGNING_PRIVATE_KEY)
+          [System.IO.File]::WriteAllText($testPath, "updater secret check")
+
+          npx tauri signer sign -f $keyPath -p "$env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD" $testPath
+          Write-Host "Updater signing secret check passed."
+
       - name: Build and publish EXE
         uses: tauri-apps/tauri-action@v0
         env:
