@@ -10,14 +10,19 @@ const packageJsonPath = path.join(root, "package.json");
 const tauriConfigPath = path.join(root, "src-tauri", "tauri.conf.json");
 const cargoTomlPath = path.join(root, "src-tauri", "Cargo.toml");
 
-const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+const readJson = (filePath) => {
+  const raw = fs.readFileSync(filePath, "utf8");
+  return JSON.parse(raw.replace(/^\uFEFF/, ""));
+};
+
+const packageJson = readJson(packageJsonPath);
 const version = packageJson.version;
 
 if (!version || typeof version !== "string") {
   throw new Error("Could not read version from package.json");
 }
 
-const tauriConfig = JSON.parse(fs.readFileSync(tauriConfigPath, "utf8"));
+const tauriConfig = readJson(tauriConfigPath);
 tauriConfig.version = version;
 fs.writeFileSync(tauriConfigPath, JSON.stringify(tauriConfig, null, 2) + "\n", "utf8");
 

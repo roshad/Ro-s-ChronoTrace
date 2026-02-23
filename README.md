@@ -118,7 +118,9 @@ npx tauri signer sign -f %USERPROFILE%\\.tauri\\ros-chronotrace.key -p "<你的�
 $pub = (Get-Content "$env:USERPROFILE\.tauri\ros-chronotrace.key.pub" -Raw).Trim()
 $cfg = Get-Content "src-tauri/tauri.conf.json" -Raw | ConvertFrom-Json
 $cfg.plugins.updater.pubkey = $pub
-$cfg | ConvertTo-Json -Depth 100 | Set-Content "src-tauri/tauri.conf.json" -Encoding utf8
+$json = $cfg | ConvertTo-Json -Depth 100
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllText("src-tauri/tauri.conf.json", "$json`n", $utf8NoBom)
 ```
 
 5. 确认 `src-tauri/tauri.conf.json` 中 `bundle.createUpdaterArtifacts` 为 `true`（否则 Release 不会有 `latest.json`）。
