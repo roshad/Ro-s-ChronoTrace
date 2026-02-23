@@ -122,6 +122,7 @@ npx tauri signer generate -w %USERPROFILE%\\.tauri\\ros-chronotrace.key
 - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`: 私钥密码（如果生成时未设置密码，可留空）
 
 3. 确认 `src-tauri/tauri.conf.json` 中 `plugins.updater.pubkey` 与你的私钥对应的公钥一致。
+4. 确认 `src-tauri/tauri.conf.json` 中 `bundle.createUpdaterArtifacts` 为 `true`（否则 Release 不会有 `latest.json`）。
 
 ### 发布行为
 
@@ -129,6 +130,7 @@ npx tauri signer generate -w %USERPROFILE%\\.tauri\\ros-chronotrace.key
 - 构建安装包
 - 生成签名文件
 - 更新并上传 `latest.json`
+- 校验 Release 资产必须包含 `latest.json` 和 `*.sig`（缺失则 CI 失败）
 
 客户端下次启动会自动更新到最新版。
 

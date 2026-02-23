@@ -15,6 +15,16 @@ const ensureUpdaterRuntime = () => {
   }
 };
 
+export const toUpdaterErrorMessage = (error: unknown): string => {
+  const raw = error instanceof Error ? error.message : String(error ?? '未知错误');
+
+  if (/Could not fetch a valid release JSON from the remote/i.test(raw)) {
+    return '未获取到有效更新元数据（latest.json）。请检查 Release 是否已上传 latest.json 与签名文件（*.sig）。';
+  }
+
+  return raw;
+};
+
 export const checkAndInstallUpdate = async (): Promise<UpdateInstallResult> => {
   ensureUpdaterRuntime();
 
@@ -55,7 +65,7 @@ export const runAutoUpdater = async () => {
     await relaunchApp();
   } catch (error) {
     console.error('Auto update check/install failed:', error);
-    const detail = String(error ?? '未知错误');
+    const detail = toUpdaterErrorMessage(error);
     window.dispatchEvent(
       new CustomEvent<string>(AUTO_UPDATE_ERROR_EVENT, {
         detail,

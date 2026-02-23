@@ -11,7 +11,7 @@ import { ExportButton } from '../components/export/ExportButton';
 import { useTimelineStore } from '../services/store';
 import { api, ScreenshotSettings, TimeEntry, TimeEntryInput, TimeEntryUpdate } from '../services/api';
 import { TimerInput } from '../components/timeline/TimerInput';
-import { checkAndInstallUpdate, relaunchApp } from '../services/updater';
+import { checkAndInstallUpdate, relaunchApp, toUpdaterErrorMessage } from '../services/updater';
 
 export const TimelineView: React.FC = () => {
   const { selectedDate, setSelectedDate, activeTimer, startTimer, stopTimer } = useTimelineStore();
@@ -861,7 +861,7 @@ export const TimelineView: React.FC = () => {
       await relaunchApp();
     } catch (error) {
       console.error('Manual update check/install failed:', error);
-      alert(`手动检测更新失败：${error}`);
+      alert(`手动检测更新失败：${toUpdaterErrorMessage(error)}`);
     } finally {
       setIsCheckingUpdate(false);
     }
