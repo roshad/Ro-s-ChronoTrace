@@ -105,7 +105,7 @@ jobs:
                 break
               }
             } catch {
-              Write-Host "Attempt $attempt: failed to query release assets yet."
+              Write-Host "Attempt ${attempt}: failed to query release assets yet."
             }
 
             if ($attempt -lt 10) {
