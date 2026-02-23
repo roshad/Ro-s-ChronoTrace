@@ -13,10 +13,6 @@ const ensureUpdaterRuntime = () => {
   if (!('__TAURI_INTERNALS__' in window)) {
     throw new Error('当前不是 Tauri 运行环境，无法检测更新。');
   }
-
-  if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
-    throw new Error('开发模式下不支持更新检查，请在打包后的应用中使用。');
-  }
 };
 
 export const checkAndInstallUpdate = async (): Promise<UpdateInstallResult> => {
