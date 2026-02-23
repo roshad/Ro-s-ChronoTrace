@@ -81,26 +81,11 @@ npm run tauri:build
 
 项目已内置工作流：`.github/workflows/release-exe.yml`。
 
-### 一次性配置
-
-1. 在 GitHub 创建仓库（例如 `toggl_like`）。
-2. 关联并推送本地代码：
-
-```bash
-git remote add origin https://github.com/<你的用户名>/Ro-s-ChronoTrace.git
-git branch -M main
-git push -u origin main
-```
 ### 版本更新
 
 AI默认生成工作流触发条件“push tags: v*”（release-exe.yml）。称是常见方案。
 [Tauri v2 官方建议里](https://v2.tauri.app/distribute/#versioning)，应用版本以 tauri.conf.json > version 为主，而且这个字段可以直接指向 package.json（即单一来源）：
 让AI改为运行release脚本一键完成。不改多处。
-
-### 给用户下载链接
-
-发布完成后，分享：
-- `https://github.com/<你的用户名>/Ro-s-ChronoTrace/releases`
 
 ## 🔄 自动更新（已接入）
 
@@ -111,18 +96,32 @@ AI默认生成工作流触发条件“push tags: v*”（release-exe.yml）。�
 
 ### 一次性配置（必须）
 
-1. 在本机生成签名密钥（若还没有）：
+1. 在本机生成带密码的签名密钥（建议使用专用发布密码）：
 
 ```bash
-npx tauri signer generate -w %USERPROFILE%\\.tauri\\ros-chronotrace.key
+npx tauri signer generate --ci -f -w %USERPROFILE%\\.tauri\\ros-chronotrace.key -p "<你的强密码>"
 ```
 
 2. 将私钥内容配置到 项目 Settings Secrets and variables - actions -New repository secret：
 - `TAURI_SIGNING_PRIVATE_KEY`: 私钥文件全文（例如 `%USERPROFILE%\\.tauri\\ros-chronotrace.key` 的内容）
-- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`: 私钥密码（如果生成时未设置密码，可留空）
+- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`: 上一步生成私钥时使用的密码（必须一致）
 
-3. 确认 `src-tauri/tauri.conf.json` 中 `plugins.updater.pubkey` 与你的私钥对应的公钥一致。
-4. 确认 `src-tauri/tauri.conf.json` 中 `bundle.createUpdaterArtifacts` 为 `true`（否则 Release 不会有 `latest.json`）。
+3. 本地快速验证密码与私钥是否匹配（可选）：
+
+```bash
+npx tauri signer sign -f %USERPROFILE%\\.tauri\\ros-chronotrace.key -p "<你的强密码>" README.md
+```
+
+4. 将公钥同步到 `src-tauri/tauri.conf.json`（避免手动复制出错）：
+
+```powershell
+$pub = (Get-Content "$env:USERPROFILE\.tauri\ros-chronotrace.key.pub" -Raw).Trim()
+$cfg = Get-Content "src-tauri/tauri.conf.json" -Raw | ConvertFrom-Json
+$cfg.plugins.updater.pubkey = $pub
+$cfg | ConvertTo-Json -Depth 100 | Set-Content "src-tauri/tauri.conf.json" -Encoding utf8
+```
+
+5. 确认 `src-tauri/tauri.conf.json` 中 `bundle.createUpdaterArtifacts` 为 `true`（否则 Release 不会有 `latest.json`）。
 
 ### 发布行为
 
@@ -360,5 +359,3 @@ npm run build
 **版本**: 0.1.0 (MVP)  
 **最后更新**: 2026-01-28  
 **状态**: ✅ Phase 0-5 已完成，可构建和测试
-
-
