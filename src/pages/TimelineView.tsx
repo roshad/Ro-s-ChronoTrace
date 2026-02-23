@@ -11,6 +11,7 @@ import { ExportButton } from '../components/export/ExportButton';
 import { useTimelineStore } from '../services/store';
 import { api, ScreenshotSettings, TimeEntry, TimeEntryInput, TimeEntryUpdate } from '../services/api';
 import { TimerInput } from '../components/timeline/TimerInput';
+import { checkAndInstallUpdate, relaunchApp } from '../services/updater';
 
 export const TimelineView: React.FC = () => {
   const { selectedDate, setSelectedDate, activeTimer, startTimer, stopTimer } = useTimelineStore();
@@ -38,6 +39,7 @@ export const TimelineView: React.FC = () => {
     max_file_kb: 50,
     storage_dir: '',
   });
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
 
   const hoverRequestIdRef = useRef(0);
   const hoverAnchorYRef = useRef<number | null>(null);
@@ -846,6 +848,25 @@ export const TimelineView: React.FC = () => {
     setSelectedDate(new Date());
   };
 
+  const handleManualCheckUpdate = async () => {
+    setIsCheckingUpdate(true);
+    try {
+      const result = await checkAndInstallUpdate();
+      if (result.status === 'no-update') {
+        alert('当前已是最新版本。');
+        return;
+      }
+
+      alert(`检测到新版本 ${result.targetVersion}（当前 ${result.currentVersion}），已下载安装，应用将重启。`);
+      await relaunchApp();
+    } catch (error) {
+      console.error('Manual update check/install failed:', error);
+      alert(`手动检测更新失败：${error}`);
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  };
+
   const handleSaveSettings = () => {
     const quality = Number(settingsForm.quality);
     const maxWidth = Number(settingsForm.max_width);
@@ -1033,6 +1054,20 @@ export const TimelineView: React.FC = () => {
         <div className="dialog-overlay" onClick={() => setShowSettings(false)}>
           <div className="dialog-card" onClick={(e) => e.stopPropagation()}>
             <h2 className="dialog-title">截图设置</h2>
+            <div className="field">
+              <label className="field-label">应用更新</label>
+              <div className="field-help">启动时会自动检查更新；你也可以手动触发检查。</div>
+              <div style={{ marginTop: 10 }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => void handleManualCheckUpdate()}
+                  disabled={isCheckingUpdate || updateSettingsMutation.isPending}
+                >
+                  {isCheckingUpdate ? '检测中...' : '手动检测更新'}
+                </button>
+              </div>
+            </div>
             <div className="stack-col">
               <div className="field">
                 <label className="field-label">WebP 质量（1-100）</label>

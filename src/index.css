@@ -50,6 +50,24 @@ select {
   min-height: 100vh;
 }
 
+.update-notice {
+  width: min(1400px, calc(100% - 48px));
+  margin: 20px auto 0;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid #7f1d1d;
+  border-radius: var(--radius-md);
+  background: rgba(127, 29, 29, 0.22);
+  color: #fecaca;
+  padding: 10px 12px;
+}
+
+.update-notice-text {
+  font-size: 13px;
+}
+
 .app-shell {
   max-width: 1400px;
   margin: 0 auto;
@@ -880,6 +898,12 @@ select {
 }
 
 @media (max-width: 900px) {
+  .update-notice {
+    width: calc(100% - 28px);
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
   .app-shell {
     padding: 14px;
   }
