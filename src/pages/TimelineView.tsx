@@ -17,6 +17,7 @@ export const TimelineView: React.FC = () => {
   const [showDialog, setShowDialog] = useState(false);
   const [dialogRange, setDialogRange] = useState<{ start: number; end: number } | null>(null);
   const [dialogInitialLabel, setDialogInitialLabel] = useState('');
+  const [dialogSource, setDialogSource] = useState<'timeline' | 'process'>('timeline');
   const [hoverCard, setHoverCard] = useState<{
     point: { x: number; y: number };
     timestamp: number;
@@ -188,6 +189,21 @@ export const TimelineView: React.FC = () => {
     return runs.filter((run) => run.endTime > run.startTime);
   }, [sortedProcessSamples, dayTimestamp, isSelectedDayToday, timeEntries, aggregateProcessUsage]);
 
+  const latestStartableEntry = React.useMemo(() => {
+    if (timeEntries.length === 0) {
+      return null;
+    }
+    return [...timeEntries].sort((a, b) => {
+      if (b.end_time !== a.end_time) {
+        return b.end_time - a.end_time;
+      }
+      if (b.start_time !== a.start_time) {
+        return b.start_time - a.start_time;
+      }
+      return b.id - a.id;
+    })[0];
+  }, [timeEntries]);
+
   useEffect(() => {
     if (!screenshotSettings) {
       return;
@@ -207,6 +223,7 @@ export const TimelineView: React.FC = () => {
       setShowDialog(false);
       setDialogRange(null);
       setDialogInitialLabel('');
+      setDialogSource('timeline');
     },
     onError: (error) => {
       console.error('Failed to create time entry:', error);
@@ -299,6 +316,7 @@ export const TimelineView: React.FC = () => {
   const handleDragSelect = (start: number, end: number) => {
     setDialogRange({ start, end });
     setDialogInitialLabel('');
+    setDialogSource('timeline');
     setShowDialog(true);
   };
 
@@ -342,8 +360,13 @@ export const TimelineView: React.FC = () => {
   };
 
   const handleRestartEntry = async (entry: TimeEntry) => {
+    if (latestStartableEntry && entry.id !== latestStartableEntry.id) {
+      alert('只有最后一个行为条目可以开始。');
+      return;
+    }
+
     if (activeTimer) {
-      alert('请先停止当前计时，再重新开始其他条目。');
+      alert('请先停止当前计时，再开始其他条目。');
       return;
     }
 
@@ -356,15 +379,15 @@ export const TimelineView: React.FC = () => {
 
       startTimer({
         entryId: entry.id,
-        startTime: entry.start_time,
+        startTime: now,
         label: entry.label,
         categoryId: entry.category_id,
       });
 
       setEditingEntry(null);
     } catch (error) {
-      console.error('Failed to restart entry:', error);
-      alert(`重新开始条目失败：${error}`);
+      console.error('Failed to start entry:', error);
+      alert(`开始条目失败：${error}`);
     }
   };
 
@@ -376,6 +399,37 @@ export const TimelineView: React.FC = () => {
       category_id: categoryId,
     });
     return entry.id;
+  };
+
+  const handleStartFromDialog = async (draft: { label: string; categoryId?: number }) => {
+    if (activeTimer) {
+      alert('请先停止当前计时，再开始新的行为。');
+      return;
+    }
+
+    const trimmedLabel = draft.label.trim();
+    if (!trimmedLabel) {
+      alert('请输入行为标签后再开始。');
+      return;
+    }
+
+    const now = Date.now();
+    try {
+      const entryId = await handleStartTimer(trimmedLabel, now, draft.categoryId);
+      startTimer({
+        entryId,
+        startTime: now,
+        label: trimmedLabel,
+        categoryId: draft.categoryId,
+      });
+      setShowDialog(false);
+      setDialogRange(null);
+      setDialogInitialLabel('');
+      setDialogSource('timeline');
+    } catch (error) {
+      console.error('Failed to start timer from entry dialog:', error);
+      alert(`开始计时失败：${error}`);
+    }
   };
 
   const handleStopTimer = async (entryId: number, endTime: number): Promise<void> => {
@@ -493,6 +547,7 @@ export const TimelineView: React.FC = () => {
     const topProcesses = computeTopProcesses(gap.start, gap.end);
     setDialogInitialLabel(topProcesses[0]?.processName ?? run.processName);
     setDialogRange(gap);
+    setDialogSource('process');
     setShowDialog(true);
   };
 
@@ -817,6 +872,10 @@ export const TimelineView: React.FC = () => {
     });
   };
 
+  const canStartEditingEntry = Boolean(
+    editingEntry && latestStartableEntry && editingEntry.id === latestStartableEntry.id
+  );
+
   return (
     <div className="app-shell">
       <div className="app-header">
@@ -905,10 +964,13 @@ export const TimelineView: React.FC = () => {
           endTime={dialogRange.end}
           initialLabel={dialogInitialLabel}
           onSubmit={handleCreateEntry}
+          onStart={handleStartFromDialog}
+          showStartAction={dialogSource === 'process'}
           onCancel={() => {
             setShowDialog(false);
             setDialogRange(null);
             setDialogInitialLabel('');
+            setDialogSource('timeline');
           }}
         />
       )}
@@ -919,6 +981,7 @@ export const TimelineView: React.FC = () => {
           onSave={handleUpdateEntry}
           onDelete={handleDeleteEntry}
           onRestart={handleRestartEntry}
+          canStart={canStartEditingEntry}
           onCancel={() => {
             setEditEntryError(null);
             setEditingEntry(null);
@@ -937,7 +1000,7 @@ export const TimelineView: React.FC = () => {
                 <ul>
                   <li>在时间轴上按住鼠标拖拽，可快速创建条目。</li>
                   <li>拖拽已有条目左右边缘，可快速调整时间范围。</li>
-                  <li>点击已有条目，可编辑、删除或重新开始计时。</li>
+                  <li>点击已有条目，可编辑、删除；仅最后一个条目可直接开始计时。</li>
                   <li>鼠标悬停时间轴，可查看对应时间的截图预览。</li>
                 </ul>
               </div>

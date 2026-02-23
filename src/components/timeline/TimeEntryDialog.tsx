@@ -8,6 +8,8 @@ type CreateDialogProps = {
   endTime: number;
   initialLabel?: string;
   onCreate: (entry: TimeEntryInput) => void;
+  onStart?: (draft: { label: string; categoryId?: number }) => void;
+  showStartAction?: boolean;
   onCancel: () => void;
 };
 
@@ -17,6 +19,7 @@ type EditDialogProps = {
   onSave: (id: number, updates: TimeEntryUpdate) => void;
   onDelete: (id: number) => void;
   onRestart: (entry: TimeEntry) => void;
+  canStart?: boolean;
   onCancel: () => void;
   errorMessage?: string | null;
 };
@@ -161,6 +164,27 @@ export const TimeEntryDialog: React.FC<TimeEntryDialogProps> = (props) => {
     props.onSave(props.entry.id, updates);
   };
 
+  const handleStart = () => {
+    const trimmedLabel = label.trim();
+    if (!trimmedLabel) {
+      setLocalError('请输入行为标签后再开始。');
+      return;
+    }
+
+    if (isEdit) {
+      props.onRestart(props.entry);
+      return;
+    }
+
+    props.onStart?.({
+      label: trimmedLabel,
+      categoryId,
+    });
+  };
+
+  const shouldShowStartButton = isEdit ? props.canStart !== false : Boolean(props.showStartAction && props.onStart);
+  const actionJustify = (isEdit || shouldShowStartButton) ? 'space-between' : 'flex-end';
+
   return (
     <div className="dialog-overlay">
       <div className="dialog-card">
@@ -233,15 +257,19 @@ export const TimeEntryDialog: React.FC<TimeEntryDialogProps> = (props) => {
               </div>
             )}
 
-            <div className="dialog-actions" style={{ justifyContent: isEdit ? 'space-between' : 'flex-end' }}>
-              {isEdit && (
+            <div className="dialog-actions" style={{ justifyContent: actionJustify }}>
+              {(isEdit || shouldShowStartButton) && (
                 <div className="toolbar-row">
-                  <button type="button" onClick={() => setShowDeleteConfirm(true)} className="btn btn-ghost">
-                    删除
-                  </button>
-                  <button type="button" onClick={() => props.onRestart(props.entry)} className="btn btn-secondary">
-                    重新开始
-                  </button>
+                  {isEdit && (
+                    <button type="button" onClick={() => setShowDeleteConfirm(true)} className="btn btn-ghost">
+                      删除
+                    </button>
+                  )}
+                  {shouldShowStartButton && (
+                    <button type="button" onClick={handleStart} className="btn btn-secondary">
+                      开始
+                    </button>
+                  )}
                 </div>
               )}
               <div className="toolbar-row">

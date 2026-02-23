@@ -7,6 +7,7 @@ interface EditEntryDialogProps {
   onSave: (id: number, updates: TimeEntryUpdate) => void;
   onDelete: (id: number) => void;
   onRestart: (entry: TimeEntry) => void;
+  canStart?: boolean;
   onCancel: () => void;
   errorMessage?: string | null;
 }
@@ -16,6 +17,7 @@ export const EditEntryDialog: React.FC<EditEntryDialogProps> = ({
   onSave,
   onDelete,
   onRestart,
+  canStart,
   onCancel,
   errorMessage,
 }) => (
@@ -25,6 +27,7 @@ export const EditEntryDialog: React.FC<EditEntryDialogProps> = ({
     onSave={onSave}
     onDelete={onDelete}
     onRestart={onRestart}
+    canStart={canStart}
     onCancel={onCancel}
     errorMessage={errorMessage}
   />

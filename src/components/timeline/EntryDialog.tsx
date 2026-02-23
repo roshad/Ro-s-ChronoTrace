@@ -7,6 +7,8 @@ interface EntryDialogProps {
   endTime: number;
   initialLabel?: string;
   onSubmit: (entry: TimeEntryInput) => void;
+  onStart?: (draft: { label: string; categoryId?: number }) => void;
+  showStartAction?: boolean;
   onCancel: () => void;
 }
 
@@ -15,6 +17,8 @@ export const EntryDialog: React.FC<EntryDialogProps> = ({
   endTime,
   initialLabel,
   onSubmit,
+  onStart,
+  showStartAction,
   onCancel,
 }) => (
   <TimeEntryDialog
@@ -23,6 +27,8 @@ export const EntryDialog: React.FC<EntryDialogProps> = ({
     endTime={endTime}
     initialLabel={initialLabel}
     onCreate={onSubmit}
+    onStart={onStart}
+    showStartAction={showStartAction}
     onCancel={onCancel}
   />
 );
