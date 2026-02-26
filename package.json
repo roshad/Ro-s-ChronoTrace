@@ -1,6 +1,6 @@
 {
   "name": "ros-chronotrace",
-  "version": "1.1.7",
+  "version": "1.2.0",
   "description": "Desktop time-tracking application with automated context capture",
   "type": "module",
   "scripts": {
