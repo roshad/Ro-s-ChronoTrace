@@ -381,7 +381,7 @@ export const TimelineView: React.FC = () => {
 
       startTimer({
         entryId: entry.id,
-        startTime: now,
+        startTime: entry.start_time,
         label: entry.label,
         categoryId: entry.category_id,
       });
@@ -439,6 +439,10 @@ export const TimelineView: React.FC = () => {
       id: entryId,
       updates: { end_time: endTime },
     });
+  };
+
+  const handleDeleteCurrentTimer = async (entryId: number): Promise<void> => {
+    await deleteMutation.mutateAsync(entryId);
   };
 
   const handleUpdateTimerLabel = async (entryId: number, label: string): Promise<void> => {
@@ -939,6 +943,7 @@ export const TimelineView: React.FC = () => {
           <TimerInput
             onStart={handleStartTimer}
             onStop={handleStopTimer}
+            onDeleteCurrent={handleDeleteCurrentTimer}
             onUpdateLabel={handleUpdateTimerLabel}
             onUpdateCategory={handleUpdateTimerCategory}
           />

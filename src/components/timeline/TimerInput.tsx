@@ -5,11 +5,18 @@ import { CategorySelector } from './CategorySelector';
 interface TimerInputProps {
   onStart: (label: string, startTime: number, categoryId?: number) => Promise<number>;
   onStop: (entryId: number, endTime: number) => Promise<void>;
+  onDeleteCurrent: (entryId: number) => Promise<void>;
   onUpdateLabel: (entryId: number, label: string) => Promise<void>;
   onUpdateCategory: (entryId: number, categoryId?: number) => Promise<void>;
 }
 
-export const TimerInput: React.FC<TimerInputProps> = ({ onStart, onStop, onUpdateLabel, onUpdateCategory }) => {
+export const TimerInput: React.FC<TimerInputProps> = ({
+  onStart,
+  onStop,
+  onDeleteCurrent,
+  onUpdateLabel,
+  onUpdateCategory,
+}) => {
   const { activeTimer, startTimer, updateActiveTimerLabel, updateActiveTimerCategory, stopTimer } = useTimelineStore();
   const [label, setLabel] = useState('');
   const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
@@ -174,6 +181,30 @@ export const TimerInput: React.FC<TimerInputProps> = ({ onStart, onStop, onUpdat
     }
   };
 
+  const handleDeleteCurrent = async () => {
+    if (!activeTimer || loading) {
+      return;
+    }
+
+    const shouldDelete = window.confirm('确认删除当前行为吗？删除后不可恢复。');
+    if (!shouldDelete) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await onDeleteCurrent(activeTimer.entryId);
+      stopTimer();
+      setLabel('');
+      setCategoryId(undefined);
+    } catch (error) {
+      console.error('Failed to delete running timer entry:', error);
+      alert(`删除当前行为失败：${error}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const formatElapsedTime = (ms: number) => {
     const seconds = Math.floor((ms / 1000) % 60);
     const minutes = Math.floor((ms / (1000 * 60)) % 60);
@@ -225,6 +256,18 @@ export const TimerInput: React.FC<TimerInputProps> = ({ onStart, onStop, onUpdat
       >
         {loading ? '处理中...' : activeTimer ? '停止' : '开始'}
       </button>
+
+      {activeTimer && (
+        <button
+          type="button"
+          onClick={handleDeleteCurrent}
+          disabled={loading}
+          className="btn btn-ghost"
+          style={{ minWidth: 110 }}
+        >
+          删除
+        </button>
+      )}
     </div>
   );
 };
