@@ -4,8 +4,9 @@
 [![Rust](https://img.shields.io/badge/Rust-1.75+-000000?logo=rust)](https://www.rust-lang.org)
 [![License](https://img.shields.io/badge/license-AGPLv3-green.svg)](./LICENSE)
 
-一个基于 Tauri 的桌面时间跟踪应用，支持自动截图与窗口活动捕获，面向需要按时间线回溯工作内容的场景。
 
+一个基于 Tauri 的桌面时间跟踪应用，支持自动截图与窗口活动捕获，面向需要按时间线回溯工作内容的场景。
+![截图](docs/images/ScreenShot_2026-03-03_214408_669.jpg)
 ## 为什么做这个项目
 - 用于解决我在使用 Toggl Track 过程中遇到的痛点（基于个人长期使用体验）：
     - 偶发重新登录
@@ -29,9 +30,6 @@
 - 自动截图与窗口活动记录
 - 按关键词搜索历史活动
 - 导出 JSON 数据
-
-## 界面截图
-![截图](docs/images/ScreenShot_2026-03-03_214408_669.jpg)
 
 ## 使用指南
 ### 创建时间条目
