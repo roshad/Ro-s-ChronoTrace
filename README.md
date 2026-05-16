@@ -99,8 +99,6 @@ cd src-tauri && cargo clippy
 - 发布流程文档: `docs/release.md`
 - 应用会在启动时检查 `latest.json` 进行自动更新
 
-
-
 ## 致谢
 - [Tauri](https://tauri.app/)
 - [React](https://react.dev/)

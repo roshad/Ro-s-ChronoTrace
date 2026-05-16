@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api, TimeEntry } from '../../services/api';
 
@@ -370,7 +370,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
       return;
     }
 
-    if (e.ctrlKey || e.metaKey) {
+    if (e.altKey) {
       e.preventDefault();
       const rect = e.currentTarget.getBoundingClientRect();
       const viewportOffset = Math.max(0, Math.min(e.clientX - rect.left, scrollContainer.clientWidth));

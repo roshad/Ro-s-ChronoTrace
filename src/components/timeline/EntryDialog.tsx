@@ -7,7 +7,7 @@ interface EntryDialogProps {
   endTime: number;
   initialLabel?: string;
   onSubmit: (entry: TimeEntryInput) => void;
-  onStart?: (draft: { label: string; categoryId?: number }) => void;
+  onStart?: (draft: { label: string; categoryId?: number; startTime: number; endTime: number }) => void;
   showStartAction?: boolean;
   onCancel: () => void;
 }

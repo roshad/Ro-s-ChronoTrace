@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { open } from '@tauri-apps/plugin-shell';
 import { ProcessRun, Timeline } from '../components/timeline/Timeline';
@@ -12,13 +12,13 @@ import { useTimelineStore } from '../services/store';
 import { api, ScreenshotSettings, TimeEntry, TimeEntryInput, TimeEntryUpdate } from '../services/api';
 import { TimerInput } from '../components/timeline/TimerInput';
 import { checkAndInstallUpdate, relaunchApp, toUpdaterErrorMessage } from '../services/updater';
+import { CategorySettings } from '../components/settings/CategorySettings';
 
 export const TimelineView: React.FC = () => {
-  const { selectedDate, setSelectedDate, activeTimer, startTimer, stopTimer } = useTimelineStore();
+  const { selectedDate, setSelectedDate, activeTimer, startTimer, stopTimer, uiScale, setUiScale } = useTimelineStore();
   const [showDialog, setShowDialog] = useState(false);
   const [dialogRange, setDialogRange] = useState<{ start: number; end: number } | null>(null);
   const [dialogInitialLabel, setDialogInitialLabel] = useState('');
-  const [dialogSource, setDialogSource] = useState<'timeline' | 'process'>('timeline');
   const [hoverCard, setHoverCard] = useState<{
     point: { x: number; y: number };
     timestamp: number;
@@ -225,7 +225,6 @@ export const TimelineView: React.FC = () => {
       setShowDialog(false);
       setDialogRange(null);
       setDialogInitialLabel('');
-      setDialogSource('timeline');
     },
     onError: (error) => {
       console.error('Failed to create time entry:', error);
@@ -318,7 +317,6 @@ export const TimelineView: React.FC = () => {
   const handleDragSelect = (start: number, end: number) => {
     setDialogRange({ start, end });
     setDialogInitialLabel('');
-    setDialogSource('timeline');
     setShowDialog(true);
   };
 
@@ -403,7 +401,7 @@ export const TimelineView: React.FC = () => {
     return entry.id;
   };
 
-  const handleStartFromDialog = async (draft: { label: string; categoryId?: number }) => {
+  const handleStartFromDialog = async (draft: { label: string; categoryId?: number; startTime: number; endTime: number }) => {
     if (activeTimer) {
       alert('请先停止当前计时，再开始新的行为。');
       return;
@@ -417,20 +415,28 @@ export const TimelineView: React.FC = () => {
 
     const now = Date.now();
     try {
-      const entryId = await handleStartTimer(trimmedLabel, now, draft.categoryId);
+      // Create the dragged entry
+      const entry = await createMutation.mutateAsync({
+        label: trimmedLabel,
+        start_time: draft.startTime,
+        end_time: now, // Snap to now so it instantly bridges the gap
+        category_id: draft.categoryId,
+      });
+
+      // Start the timer using THIS entry
       startTimer({
-        entryId,
-        startTime: now,
+        entryId: entry.id,
+        startTime: draft.startTime,
         label: trimmedLabel,
         categoryId: draft.categoryId,
       });
+      
       setShowDialog(false);
       setDialogRange(null);
       setDialogInitialLabel('');
-      setDialogSource('timeline');
     } catch (error) {
       console.error('Failed to start timer from entry dialog:', error);
-      alert(`开始计时失败：${error}`);
+      alert(`操作失败：${error}`);
     }
   };
 
@@ -553,7 +559,6 @@ export const TimelineView: React.FC = () => {
     const topProcesses = computeTopProcesses(gap.start, gap.end);
     setDialogInitialLabel(topProcesses[0]?.processName ?? run.processName);
     setDialogRange(gap);
-    setDialogSource('process');
     setShowDialog(true);
   };
 
@@ -911,8 +916,8 @@ export const TimelineView: React.FC = () => {
             type="button"
             onClick={() => setShowSettings(true)}
             className="btn btn-secondary btn-sm"
-            aria-label="打开截图设置"
-            title="截图设置"
+            aria-label="打开设置"
+            title="设置"
           >
             设置
           </button>
@@ -936,53 +941,55 @@ export const TimelineView: React.FC = () => {
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="panel" style={{ textAlign: 'center', padding: '40px' }}>加载中...</div>
-      ) : (
-        <>
-          <TimerInput
-            onStart={handleStartTimer}
-            onStop={handleStopTimer}
-            onDeleteCurrent={handleDeleteCurrentTimer}
-            onUpdateLabel={handleUpdateTimerLabel}
-            onUpdateCategory={handleUpdateTimerCategory}
-          />
-          <Timeline
-            date={selectedDate}
-            timeEntries={timeEntries}
-            screenshotTimestamps={screenshotTimestamps}
-            processRuns={processRuns}
-            onDragSelect={handleDragSelect}
-            onEntryRangeChange={handleEntryRangeChange}
-            onHover={handleHover}
-            onHoverEnd={handleHoverEnd}
-            onEntryClick={handleEntryClick}
-            onProcessBarHover={handleProcessBarHover}
-            onProcessBarLeave={handleProcessBarLeave}
-            onProcessBarClick={handleProcessBarClick}
-          />
-
-          {hoverCard && (
-            <HoverInsightsTooltip
-              position={getTooltipPosition(hoverCard.point)}
-              timestamp={hoverCard.timestamp}
-              rangeStart={hoverCard.rangeStart}
-              rangeEnd={hoverCard.rangeEnd}
-              entryLabel={resolvedHoverLabel}
-              categoryName={resolvedHoverCategoryName}
-              filePath={hoverCard.screenshot?.filePath}
-              dataUrl={hoverCard.screenshot?.dataUrl}
-              processItems={hoverCard.items}
-              onMouseEnter={handleTooltipMouseEnter}
-              onMouseLeave={handleTooltipMouseLeave}
-              onImageClick={handleOpenHoveredScreenshot}
-              isFading={isTooltipFading}
-            />
-          )}
-
-          <TodaySearchBar date={selectedDate} />
-        </>
+      {isLoading && (
+        <div className="panel" style={{ textAlign: 'center', padding: '8px', margin: '0 24px', fontSize: 14 }}>
+          加载中...
+        </div>
       )}
+      
+      <div style={{ opacity: isLoading ? 0.5 : 1, pointerEvents: isLoading ? 'none' : 'auto', transition: 'opacity 0.2s' }}>
+        <TimerInput
+          onStart={handleStartTimer}
+          onStop={handleStopTimer}
+          onDeleteCurrent={handleDeleteCurrentTimer}
+          onUpdateLabel={handleUpdateTimerLabel}
+          onUpdateCategory={handleUpdateTimerCategory}
+        />
+        <Timeline
+          date={selectedDate}
+          timeEntries={timeEntries}
+          screenshotTimestamps={screenshotTimestamps}
+          processRuns={processRuns}
+          onDragSelect={handleDragSelect}
+          onEntryRangeChange={handleEntryRangeChange}
+          onHover={handleHover}
+          onHoverEnd={handleHoverEnd}
+          onEntryClick={handleEntryClick}
+          onProcessBarHover={handleProcessBarHover}
+          onProcessBarLeave={handleProcessBarLeave}
+          onProcessBarClick={handleProcessBarClick}
+        />
+
+        {hoverCard && (
+          <HoverInsightsTooltip
+            position={getTooltipPosition(hoverCard.point)}
+            timestamp={hoverCard.timestamp}
+            rangeStart={hoverCard.rangeStart}
+            rangeEnd={hoverCard.rangeEnd}
+            entryLabel={resolvedHoverLabel}
+            categoryName={resolvedHoverCategoryName}
+            filePath={hoverCard.screenshot?.filePath}
+            dataUrl={hoverCard.screenshot?.dataUrl}
+            processItems={hoverCard.items}
+            onMouseEnter={handleTooltipMouseEnter}
+            onMouseLeave={handleTooltipMouseLeave}
+            onImageClick={handleOpenHoveredScreenshot}
+            isFading={isTooltipFading}
+          />
+        )}
+
+        <TodaySearchBar date={selectedDate} />
+      </div>
 
       {showDialog && dialogRange && (
         <EntryDialog
@@ -991,12 +998,11 @@ export const TimelineView: React.FC = () => {
           initialLabel={dialogInitialLabel}
           onSubmit={handleCreateEntry}
           onStart={handleStartFromDialog}
-          showStartAction={dialogSource === 'process'}
+          showStartAction={true}
           onCancel={() => {
             setShowDialog(false);
             setDialogRange(null);
             setDialogInitialLabel('');
-            setDialogSource('timeline');
           }}
         />
       )}
@@ -1033,7 +1039,7 @@ export const TimelineView: React.FC = () => {
               <div>
                 <strong>缩放与滚动</strong>
                 <ul>
-                  <li>`Ctrl` / `Cmd` + 鼠标滚轮：缩放视野（4-24 小时）。</li>
+                  <li>Alt + 鼠标滚轮：缩放视野（4-24 小时）。</li>
                   <li>鼠标滚轮：横向滚动时间轴。</li>
                   <li>也可拖动“时间轴缩放”滑块精细调整。</li>
                 </ul>
@@ -1057,8 +1063,40 @@ export const TimelineView: React.FC = () => {
 
       {showSettings && (
         <div className="dialog-overlay" onClick={() => setShowSettings(false)}>
-          <div className="dialog-card" onClick={(e) => e.stopPropagation()}>
-            <h2 className="dialog-title">截图设置</h2>
+          <div className="dialog-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 600, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+            <h2 className="dialog-title">设置</h2>
+            
+            <CategorySettings />
+            
+            <hr style={{ margin: '24px 0', border: 0, borderTop: '1px solid var(--border)' }} />
+            
+            <h3 style={{ fontSize: '1.1em', marginBottom: 16 }}>界面外观</h3>
+            <div className="field">
+              <label className="field-label">界面缩放比例</label>
+              <div className="field-help">使用 Ctrl + 鼠标滚轮（或 Ctrl + 加减号）也可快速缩放界面。</div>
+              <div style={{ marginTop: 10 }}>
+                <select
+                  value={uiScale.toFixed(2)}
+                  onChange={(e) => setUiScale(Number(e.target.value))}
+                  className="input"
+                  style={{ width: '120px' }}
+                >
+                  <option value="0.50">50%</option>
+                  <option value="0.75">75%</option>
+                  <option value="0.80">80%</option>
+                  <option value="0.90">90%</option>
+                  <option value="1.00">100%</option>
+                  <option value="1.10">110%</option>
+                  <option value="1.25">125%</option>
+                  <option value="1.50">150%</option>
+                  <option value="2.00">200%</option>
+                </select>
+              </div>
+            </div>
+
+            <hr style={{ margin: '24px 0', border: 0, borderTop: '1px solid var(--border)' }} />
+            
+            <h3 style={{ fontSize: '1.1em', marginBottom: 16 }}>应用更新</h3>
             <div className="field">
               <label className="field-label">应用更新</label>
               <div className="field-help">启动时会自动检查更新；你也可以手动触发检查。</div>
@@ -1073,6 +1111,10 @@ export const TimelineView: React.FC = () => {
                 </button>
               </div>
             </div>
+
+            <hr style={{ margin: '24px 0', border: 0, borderTop: '1px solid var(--border)' }} />
+
+            <h3 style={{ fontSize: '1.1em', marginBottom: 16 }}>截图设置</h3>
             <div className="stack-col">
               <div className="field">
                 <label className="field-label">WebP 质量（1-100）</label>

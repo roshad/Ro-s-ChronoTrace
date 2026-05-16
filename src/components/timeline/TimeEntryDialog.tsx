@@ -8,7 +8,7 @@ type CreateDialogProps = {
   endTime: number;
   initialLabel?: string;
   onCreate: (entry: TimeEntryInput) => void;
-  onStart?: (draft: { label: string; categoryId?: number }) => void;
+  onStart?: (draft: { label: string; categoryId?: number; startTime: number; endTime: number }) => void;
   showStartAction?: boolean;
   onCancel: () => void;
 };
@@ -176,9 +176,28 @@ export const TimeEntryDialog: React.FC<TimeEntryDialogProps> = (props) => {
       return;
     }
 
+    const parsedStartTime = parseTimeInput(startTimeInput, sourceStartTime);
+    if (!parsedStartTime) {
+      setLocalError('时间格式无效，请使用 HH:mm:ss。');
+      return;
+    }
+
+    const parsedEndTime = parseTimeInput(endTimeInput, sourceEndTime);
+    if (!parsedEndTime) {
+      setLocalError('时间格式无效，请使用 HH:mm:ss。');
+      return;
+    }
+
+    if (parsedEndTime <= parsedStartTime) {
+      setLocalError('结束时间必须晚于开始时间。');
+      return;
+    }
+
     props.onStart?.({
       label: trimmedLabel,
       categoryId,
+      startTime: parsedStartTime,
+      endTime: parsedEndTime,
     });
   };
 
