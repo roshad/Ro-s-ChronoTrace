@@ -36,6 +36,7 @@ function App() {
   useEffect(() => {
     // Apply UI Scale to document root
     document.documentElement.style.zoom = `${uiScale}`;
+    document.documentElement.style.setProperty('--ui-scale', `${uiScale}`);
   }, [uiScale]);
 
   useEffect(() => {

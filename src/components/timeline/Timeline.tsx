@@ -617,9 +617,9 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
   return (
     <div
       style={{
-        width: '100vw',
-        marginLeft: 'calc(50% - 50vw)',
-        marginRight: 'calc(50% - 50vw)',
+        width: 'calc(100vw / var(--ui-scale, 1))',
+        marginLeft: 'calc(50% - (50vw / var(--ui-scale, 1)))',
+        marginRight: 'calc(50% - (50vw / var(--ui-scale, 1)))',
         paddingTop: '12px',
       }}
     >
