@@ -104,13 +104,13 @@ pub fn save_screenshot_settings(settings: ScreenshotSettings) -> Result<Screensh
     Ok(normalized)
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "legacy-tauri", tauri::command)]
 #[specta::specta]
 pub async fn get_screenshot_settings_cmd() -> Result<ScreenshotSettings, String> {
     load_screenshot_settings()
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "legacy-tauri", tauri::command)]
 #[specta::specta]
 pub async fn update_screenshot_settings_cmd(
     settings: ScreenshotSettings,
@@ -118,7 +118,7 @@ pub async fn update_screenshot_settings_cmd(
     save_screenshot_settings(settings)
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "legacy-tauri", tauri::command)]
 #[specta::specta]
 pub async fn resolve_screenshot_storage_dir_cmd(
     storage_dir: Option<String>,
@@ -127,7 +127,7 @@ pub async fn resolve_screenshot_storage_dir_cmd(
     Ok(resolved.to_string_lossy().to_string())
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "legacy-tauri", tauri::command)]
 #[specta::specta]
 pub async fn resolve_screenshot_file_path_cmd(stored_path: String) -> Result<String, String> {
     let resolved = resolve_screenshot_file_path(&stored_path)?;

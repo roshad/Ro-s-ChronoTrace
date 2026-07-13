@@ -42,12 +42,12 @@ where
 }
 
 // Tauri commands - ALL must use with_db wrapper
-#[tauri::command]
+#[cfg_attr(feature = "legacy-tauri", tauri::command)]
 pub async fn get_time_entries(date: i64) -> AppResult<Vec<crate::types::TimeEntry>> {
     with_db(|conn| time_entries::get_time_entries_impl(conn, date))
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "legacy-tauri", tauri::command)]
 pub async fn get_time_entries_by_range(
     start_time: i64,
     end_time: i64,
@@ -55,14 +55,14 @@ pub async fn get_time_entries_by_range(
     with_db(|conn| time_entries::get_time_entries_by_range_impl(conn, start_time, end_time))
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "legacy-tauri", tauri::command)]
 pub async fn create_time_entry(
     entry: crate::types::TimeEntryInput,
 ) -> AppResult<crate::types::TimeEntry> {
     with_db(|conn| time_entries::create_time_entry_impl(conn, &entry))
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "legacy-tauri", tauri::command)]
 pub async fn update_time_entry(
     id: i64,
     updates: crate::types::TimeEntryUpdate,
@@ -70,41 +70,41 @@ pub async fn update_time_entry(
     with_db(|conn| time_entries::update_time_entry_impl(conn, id, &updates))
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "legacy-tauri", tauri::command)]
 pub async fn delete_time_entry(id: i64) -> AppResult<()> {
     with_db(|conn| time_entries::delete_time_entry_impl(conn, id))
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "legacy-tauri", tauri::command)]
 pub async fn search_activities_cmd(query: String) -> AppResult<Vec<crate::types::SearchResult>> {
     with_db(|conn| search::search_activities_impl(conn, &query))
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "legacy-tauri", tauri::command)]
 pub async fn search_activities_by_range_cmd(query: String, start_time: i64, end_time: i64) -> AppResult<Vec<crate::types::SearchResult>> {
     with_db(|conn| {
         search::search_activities_by_date_impl(conn, &query, start_time, end_time)
     })
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "legacy-tauri", tauri::command)]
 pub async fn export_data_cmd() -> AppResult<crate::types::ExportData> {
     with_db(export::export_data_impl)
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "legacy-tauri", tauri::command)]
 pub async fn get_categories() -> AppResult<Vec<crate::types::Category>> {
     with_db(categories::get_categories_impl)
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "legacy-tauri", tauri::command)]
 pub async fn create_category(
     category: crate::types::CategoryInput,
 ) -> AppResult<crate::types::Category> {
     with_db(|conn| categories::create_category_impl(conn, &category))
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "legacy-tauri", tauri::command)]
 pub async fn update_category(
     id: i64,
     category: crate::types::CategoryInput,
@@ -112,12 +112,12 @@ pub async fn update_category(
     with_db(|conn| categories::update_category_impl(conn, id, &category))
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "legacy-tauri", tauri::command)]
 pub async fn delete_category(id: i64) -> AppResult<()> {
     with_db(|conn| categories::delete_category_impl(conn, id))
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "legacy-tauri", tauri::command)]
 pub async fn get_screenshot_timestamps_for_day(date: i64) -> AppResult<Vec<i64>> {
     with_db(|conn| {
         let start_of_day = date;
@@ -126,7 +126,7 @@ pub async fn get_screenshot_timestamps_for_day(date: i64) -> AppResult<Vec<i64>>
     })
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "legacy-tauri", tauri::command)]
 pub async fn get_process_samples_for_day(date: i64) -> AppResult<Vec<crate::types::ProcessSample>> {
     with_db(|conn| {
         let start_of_day = date;

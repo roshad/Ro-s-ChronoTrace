@@ -4,11 +4,13 @@
   "description": "Desktop time-tracking application with automated context capture",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
+    "dev": "npm run slint:dev",
+    "build": "npm run slint:build",
+    "web:dev": "vite",
+    "web:build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "tauri:dev": "tauri dev",
+    "tauri:dev": "tauri dev --features legacy-tauri",
     "tauri:build": "tauri build",
     "version:sync": "node ./scripts/sync-version.mjs",
     "version": "npm run version:sync && git add src-tauri/tauri.conf.json src-tauri/Cargo.toml",
@@ -18,7 +20,12 @@
     "release:version": "node ./scripts/release.mjs",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "slint": "cargo run --manifest-path src-tauri/Cargo.toml --bin slint-app --no-default-features",
+    "slint:dev": "cargo run --manifest-path src-tauri/Cargo.toml --bin slint-app --no-default-features",
+    "slint:check": "cargo check --manifest-path src-tauri/Cargo.toml --bin slint-app --no-default-features",
+    "slint:build": "cargo build --manifest-path src-tauri/Cargo.toml --bin slint-app --release --no-default-features",
+    "check": "npm run slint:check"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.59.20",

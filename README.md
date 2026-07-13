@@ -58,7 +58,6 @@
 
 ## 快速开始
 ### 前置条件
-- Node.js 20+
 - Rust 1.75+
 - Windows 10/11
 
@@ -66,33 +65,36 @@
 ```bash
 git clone <repository-url>
 cd toggl_like
-npm install
-npm run tauri:dev
+npm run dev
 ```
+
+`npm run dev` 默认启动不依赖 WebView 的 Slint 原生前端。旧 React/Tauri
+界面仅作为迁移期兼容目标，可用 `npm run tauri:dev` 启动。
 
 ### 生产构建
 ```bash
-npm run tauri:build
+npm run build
 ```
 
-构建输出目录: `src-tauri/target/release/bundle/`
+原生可执行文件输出到 `src-tauri/target/release/slint-app.exe`。
 
 ## 开发
 ### 技术栈
-- 前端: React 18, TypeScript 5.x, Vite, Zustand, TanStack Query
-- 后端: Rust, Tauri 2.x, SQLite, Tokio, rusqlite
+- 前端: Slint 原生 GUI
+- 后端: Rust, SQLite, Tokio, rusqlite
+- 兼容前端: React 18 + Tauri 2.x（迁移期保留）
 - Windows 捕获: windows-rs, windows-capture, rdev
 
 ### 常用命令
 ```bash
-# React 测试
-npm test
-
 # Rust 测试
 cd src-tauri && cargo test
 
 # Rust 检查
 cd src-tauri && cargo clippy
+
+# Slint 前端检查
+npm run check
 ```
 
 ## 发布与自动更新

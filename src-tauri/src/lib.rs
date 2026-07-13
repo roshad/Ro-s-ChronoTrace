@@ -4,6 +4,7 @@ pub mod capture;
 pub mod data;
 pub mod idle;
 pub mod app_settings;
+pub mod app_runtime;
 pub mod types;
 
 // Re-export commonly used types and functions

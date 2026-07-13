@@ -1,0 +1,1026 @@
+﻿import { Button, LineEdit, ListView, ScrollView } from "std-widgets.slint";
+
+export struct TimeEntryRow {
+    id: int,
+    label: string,
+    time_range: string,
+    duration: string,
+}
+
+export struct TimelineBlock {
+    id: int,
+    label: string,
+    x: float,
+    width: float,
+    color: brush,
+}
+
+export struct TimelineMarker {
+    x: float,
+}
+
+export struct ProcessRunBlock {
+    x: float,
+    width: float,
+    color: brush,
+    name: string,
+}
+
+export struct CategoryChip {
+    id: int,
+    name: string,
+    color: brush,
+    color_text: string,
+    duration: string,
+    percentage: string,
+    percentage_value: float,
+}
+
+export struct SearchResultRow {
+    title: string,
+    detail: string,
+}
+
+component StatCard inherits Rectangle {
+    in property <string> title;
+    in property <string> value;
+    in property <string> caption;
+
+    border-radius: 16px;
+    border-width: 1px;
+    border-color: #1e3a36;
+    background: #0f1f1d;
+
+    VerticalLayout {
+        padding: 14px;
+        spacing: 6px;
+        Text { text: root.title; color: #99b9b3; font-size: 12px; font-weight: 600; }
+        Text { text: root.value; color: #e1f5f1; font-size: 22px; font-weight: 700; }
+        Text { text: root.caption; color: #6fa79d; font-size: 11px; }
+    }
+}
+
+component ToolbarButton inherits Rectangle {
+    in property <string> text;
+    callback clicked();
+
+    min-width: 76px;
+    height: 36px;
+    border-radius: 10px;
+    border-width: 1px;
+    border-color: touch.has-hover ? #2d5b54 : #1e3a36;
+    background: touch.pressed ? #152825 : (touch.has-hover ? #18302c : #0f1f1d);
+
+    Text {
+        text: root.text;
+        color: #e1f5f1;
+        font-size: 13px;
+        font-weight: 600;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    touch := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+component TimelineView inherits Rectangle {
+    in property <[TimelineBlock]> blocks;
+    in property <[TimelineMarker]> screenshots;
+    in property <[ProcessRunBlock]> process_runs;
+    in property <int> visible_hours;
+    in property <float> view_start;
+    callback entry_clicked(int);
+    callback screenshot_clicked(float);
+    callback zoom_in();
+    callback zoom_out();
+    callback pan_left();
+    callback pan_right();
+    callback range_created(float, float);
+    callback hover_at(float);
+    callback entry_resized(int, float, bool);
+    in property <string> hover_text;
+    property <float> drag_start: -1;
+    property <float> drag_current: -1;
+
+    border-radius: 0px;
+    border-width: 0px;
+    background: transparent;
+    height: 190px;
+
+    timeline-canvas := Rectangle {
+        x: 0px;
+        y: 43px;
+        width: parent.width;
+        height: 120px;
+        background: #0b2924;
+        border-radius: 0px;
+        border-width: 1px;
+        border-color: #1e3a36;
+        clip: true;
+
+        TouchArea {
+            pointer-event(event) => {
+                if (event.button == PointerEventButton.left && event.kind == PointerEventKind.down) {
+                    root.drag_start = self.mouse-x / self.width;
+                    root.drag_current = root.drag_start;
+                }
+                if (event.button == PointerEventButton.left && event.kind == PointerEventKind.up && root.drag_start >= 0) {
+                    root.range_created(min(root.drag_start, root.drag_current), max(root.drag_start, root.drag_current));
+                    root.drag_start = -1;
+                    root.drag_current = -1;
+                }
+            }
+            moved => {
+                if (self.pressed) { root.drag_current = max(0, min(1, self.mouse-x / self.width)); }
+                root.hover_at(max(0, min(1, self.mouse-x / self.width)));
+            }
+        }
+
+        if root.drag_start >= 0 : Rectangle {
+            x: parent.width * min(root.drag_start, root.drag_current);
+            width: parent.width * abs(root.drag_current - root.drag_start);
+            y: 24px; height: 66px;
+            background: #14b8a655;
+            border-width: 1px; border-color: #5eead4;
+        }
+
+        // hour grid
+        for hour in root.visible_hours + 1 : Rectangle {
+            x: parent.width * hour / root.visible_hours;
+            y: 0px;
+            width: 1px;
+            height: parent.height;
+            background: #1e3a36;
+
+            Text {
+                x: -12px;
+                y: 4px;
+                width: 42px;
+                height: 14px;
+                text: floor(root.view_start * 24 + hour) + ":00";
+                color: #6fa79d;
+                font-size: 10px;
+                horizontal-alignment: center;
+            }
+        }
+
+        // time entries
+        for block in root.blocks : block-rect := Rectangle {
+            x: parent.width * (block.x - root.view_start) * 24 / root.visible_hours;
+            y: 21px;
+            width: max(parent.width * block.width * 24 / root.visible_hours, 2px);
+            height: 61px;
+            background: block.color;
+            border-radius: 5px;
+            border-width: 1px;
+            border-color: #051f1d;
+
+            TouchArea { clicked => { root.entry_clicked(block.id); } }
+
+            Text {
+                x: 7px;
+                y: 8px;
+                width: parent.width - 14px;
+                height: 44px;
+                text: block.label;
+                color: white;
+                font-size: 12px;
+                font-weight: 700;
+                overflow: elide;
+                vertical-alignment: center;
+            }
+            Rectangle {
+                x: 0px; y: 0px; width: 7px; height: parent.height;
+                background: left-resize.has-hover ? #ffffff66 : transparent;
+                left-resize := TouchArea {
+                    mouse-cursor: ew-resize;
+                    pointer-event(event) => {
+                        if (event.button == PointerEventButton.left && event.kind == PointerEventKind.up) {
+                            root.entry_resized(block.id, max(0, min(1, (block-rect.x + self.mouse-x) / timeline-canvas.width)), true);
+                        }
+                    }
+                }
+            }
+            Rectangle {
+                x: parent.width - 7px; y: 0px; width: 7px; height: parent.height;
+                background: right-resize.has-hover ? #ffffff66 : transparent;
+                right-resize := TouchArea {
+                    mouse-cursor: ew-resize;
+                    pointer-event(event) => {
+                        if (event.button == PointerEventButton.left && event.kind == PointerEventKind.up) {
+                            root.entry_resized(block.id, max(0, min(1, (block-rect.x + block-rect.width - 7px + self.mouse-x) / timeline-canvas.width)), false);
+                        }
+                    }
+                }
+            }
+        }
+
+        // screenshot markers
+        for shot in root.screenshots : Rectangle {
+            x: parent.width * (shot.x - root.view_start) * 24 / root.visible_hours - 3px;
+            y: 91px;
+            width: 6px;
+            height: 6px;
+            border-radius: 3px;
+            background: #f97316;
+            border-width: 1px;
+            border-color: #0f1f1d;
+            TouchArea { clicked => { root.screenshot_clicked(shot.x); } }
+        }
+
+        // process bar
+        for run in root.process_runs : Rectangle {
+            x: parent.width * (run.x - root.view_start) * 24 / root.visible_hours;
+            y: 103px;
+            width: max(parent.width * run.width * 24 / root.visible_hours, 1px);
+            height: 10px;
+            background: run.color;
+            opacity: 0.92;
+        }
+    }
+
+    HorizontalLayout {
+        x: 20px;
+        y: 0px;
+        width: parent.width - 40px;
+        height: 36px;
+
+        Text { text: "时间轴缩放"; color: #eafffb; font-size: 14px; font-weight: 800; vertical-alignment: center; }
+        Button { text: "←"; clicked => { root.pan_left(); } }
+        Button { text: "−"; clicked => { root.zoom_out(); } }
+        Text { text: "当前视野：" + root.visible_hours + " 小时"; color: #6fa79d; font-size: 12px; horizontal-stretch: 1; vertical-alignment: center; }
+        Button { text: "+"; clicked => { root.zoom_in(); } }
+        Button { text: "→"; clicked => { root.pan_right(); } }
+        Text { text: root.hover_text == "" ? "移动鼠标查看行为、类别、截图与进程统计" : root.hover_text; color: #70b7ad; font-size: 11px; overflow: elide; vertical-alignment: center; }
+    }
+
+    Rectangle {
+        x: (parent.width - min(parent.width * root.visible_hours / 24, 360px)) / 2;
+        y: 176px;
+        width: min(parent.width * root.visible_hours / 24, 360px);
+        height: 8px;
+        border-radius: 4px;
+        background: #43877d;
+    }
+}
+
+export component AppWindow inherits Window {
+    title: "Ros ChronoTrace - Slint";
+    preferred-width: 1220px;
+    preferred-height: 760px;
+    min-width: 900px;
+    min-height: 640px;
+    max-width: 100000px;
+    max-height: 100000px;
+    no-frame: false;
+    background: #071311;
+
+    in property <string> current_date: "今天";
+    in property <string> status_text: "正在加载...";
+    in property <string> total_duration: "0秒";
+    in property <string> entry_count: "0";
+    in property <string> screenshot_count: "0";
+    in property <string> process_count: "0";
+    in property <string> active_label: "未开始计时";
+    in property <string> active_elapsed: "00:00:00";
+    in property <bool> is_running: false;
+    in property <[TimeEntryRow]> entries;
+    in property <[TimelineBlock]> timeline_blocks;
+    in property <[TimelineMarker]> screenshot_markers;
+    in property <[ProcessRunBlock]> process_runs;
+    in property <[CategoryChip]> categories;
+    in property <[SearchResultRow]> search_results;
+    in property <[string]> saved_searches;
+    in property <string> search_summary: "输入至少两个字符搜索当天记录";
+    in-out property <string> search_query: "";
+    in property <bool> show_settings: false;
+    in-out property <string> settings_quality: "40";
+    in-out property <string> settings_width: "960";
+    in-out property <string> settings_max_kb: "50";
+    in-out property <string> settings_storage: "";
+    in property <string> settings_error: "";
+    in property <int> timeline_visible_hours: 24;
+    in property <float> timeline_view_start: 0;
+    in property <string> timeline_hover_text: "";
+    in property <string> new_category_label: "分类";
+    in property <bool> show_screenshot: false;
+    in-out property <bool> show_help: false;
+    in property <image> screenshot_image;
+    in property <string> screenshot_time: "";
+    in-out property <string> category_name: "";
+    in-out property <string> category_color: "#14b8a6";
+    in property <int> editing_category_id: -1;
+    in property <bool> show_edit: false;
+    in-out property <string> edit_label: "";
+    in-out property <string> edit_start_time: "";
+    in-out property <string> edit_end_time: "";
+    in property <string> edit_time_range: "";
+    in property <string> edit_duration: "";
+    in property <string> edit_error: "";
+    in property <string> edit_dialog_title: "编辑行为条目";
+    in-out property <int> edit_category_id: -1;
+
+    callback previous_day();
+    callback next_day();
+    callback today();
+    callback refresh();
+    callback start_entry(string, int);
+    callback stop_entry();
+    callback edit_entry(int);
+    callback save_edit(string, string, string, int);
+    callback delete_edit();
+    callback close_edit();
+    callback search(string, int);
+    callback save_search(string);
+    callback export_json();
+    callback open_settings();
+    callback save_settings(string, string, string, string);
+    callback close_settings();
+    callback begin_edit_category(int, string, string);
+    callback save_category(int, string, string);
+    callback delete_category(int);
+    callback preview_screenshot(float);
+    callback close_screenshot();
+    callback open_screenshot();
+    callback open_screenshot_folder();
+    callback timeline_zoom_in();
+    callback timeline_zoom_out();
+    callback timeline_pan_left();
+    callback timeline_pan_right();
+    callback create_range(float, float);
+    callback timeline_hover(float);
+    callback resize_entry(int, float, bool);
+    callback check_update();
+    callback ui_zoom(float);
+    callback cycle_new_category();
+
+    property <string> new_entry: "";
+    in-out property <int> new_category_id: -1;
+    property <int> search_scope: 0;
+
+    Rectangle {
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: parent.height;
+        background: @linear-gradient(135deg, #071311 0%, #0b1c19 55%, #111827 100%);
+    }
+
+    TouchArea {
+        scroll-event(event) => {
+            if (event.modifiers.control) {
+                root.ui_zoom(event.delta-y / 1px);
+                return accept;
+            }
+            reject
+        }
+    }
+
+    // Web 版主界面的 Slint 等效布局。保留高信息密度，并让时间轴横跨整个窗口。
+    if false : VerticalLayout {
+        spacing: 0px;
+
+        if true : Rectangle {
+            height: 80px;
+            background: transparent;
+            HorizontalLayout {
+                width: min(parent.width - 48px, 1350px);
+                height: parent.height;
+                x: (parent.width - self.width) / 2;
+                spacing: 10px;
+                Rectangle { horizontal-stretch: 1; }
+                ToolbarButton { text: "导出数据 (JSON)"; min-width: 138px; clicked => { root.export_json(); } }
+                ToolbarButton { text: "设置"; clicked => { root.open_settings(); } }
+                ToolbarButton { text: "? 帮助"; clicked => { root.show_help = true; } }
+                ToolbarButton { text: "< 前一天"; clicked => { root.previous_day(); } }
+                ToolbarButton { text: "今天"; clicked => { root.today(); } }
+                ToolbarButton { text: "后一天 >"; clicked => { root.next_day(); } }
+                Text {
+                    text: root.current_date;
+                    color: #f1fffc;
+                    font-size: 17px;
+                    font-weight: 800;
+                    vertical-alignment: center;
+                    min-width: 150px;
+                }
+            }
+        }
+
+        if true : Rectangle {
+            height: 82px;
+            background: transparent;
+            timer-card := Rectangle {
+                width: min(parent.width - 48px, 1350px);
+                height: 58px;
+                x: (parent.width - self.width) / 2;
+                y: 4px;
+                border-radius: 12px;
+                background: #0c2925;
+                border-width: 1px;
+                border-color: #20534d;
+                HorizontalLayout {
+                    padding: 12px;
+                    spacing: 12px;
+                    LineEdit {
+                        text <=> root.new_entry;
+                        placeholder-text: root.is_running ? "正在计时：" + root.active_label : "你正在做什么？";
+                        enabled: !root.is_running;
+                        accepted => {
+                            if (root.is_running) { root.stop_entry(); }
+                            else { root.start_entry(root.new_entry, root.new_category_id); root.new_entry = ""; }
+                        }
+                    }
+                    Button {
+                        text: root.new_category_label;
+                        min-width: 120px;
+                        clicked => { root.cycle_new_category(); }
+                    }
+                    Button {
+                        text: root.is_running ? "停止  " + root.active_elapsed : "开始";
+                        min-width: 110px;
+                        clicked => {
+                            if (root.is_running) { root.stop_entry(); }
+                            else { root.start_entry(root.new_entry, root.new_category_id); root.new_entry = ""; }
+                        }
+                    }
+                }
+            }
+        }
+
+        if true : TimelineView {
+            blocks: root.timeline_blocks;
+            screenshots: root.screenshot_markers;
+            process_runs: root.process_runs;
+            visible_hours: root.timeline_visible_hours;
+            view_start: root.timeline_view_start;
+            hover_text: root.timeline_hover_text;
+            entry_clicked(id) => { root.edit_entry(id); }
+            screenshot_clicked(x) => { root.preview_screenshot(x); }
+            zoom_in => { root.timeline_zoom_in(); }
+            zoom_out => { root.timeline_zoom_out(); }
+            pan_left => { root.timeline_pan_left(); }
+            pan_right => { root.timeline_pan_right(); }
+            range_created(start, end) => { root.create_range(start, end); }
+            hover_at(position) => { root.timeline_hover(position); }
+            entry_resized(id, position, is_start) => { root.resize_entry(id, position, is_start); }
+        }
+
+        if true : Rectangle { height: 36px; background: transparent; }
+
+        if true : Rectangle {
+            vertical-stretch: 1;
+            background: transparent;
+            if false : search-panel := Rectangle {
+                width: min(parent.width - 48px, 1350px);
+                height: 440px;
+                x: (parent.width - self.width) / 2;
+                y: 0px;
+                border-radius: 12px;
+                background: #09231f;
+                border-width: 1px;
+                border-color: #20534d;
+                HorizontalLayout {
+                    padding: 20px;
+                    spacing: 16px;
+
+                    VerticalLayout {
+                        horizontal-stretch: 3;
+                        spacing: 14px;
+                        Text { text: "⌕  行为搜索"; color: #effffc; font-size: 19px; font-weight: 800; }
+                        Text { text: root.search_scope == 0 ? "在当天范围内搜索行为记录。" : (root.search_scope == 1 ? "在本月范围内搜索行为记录。" : "在本年范围内搜索行为记录。"); color: #83bbb2; font-size: 12px; }
+                        HorizontalLayout {
+                            spacing: 6px;
+                            Button { text: root.search_scope == 0 ? "✓ 当天" : "当天"; clicked => { root.search_scope = 0; root.search(root.search_query, 0); } }
+                            Button { text: root.search_scope == 1 ? "✓ 本月" : "本月"; clicked => { root.search_scope = 1; root.search(root.search_query, 1); } }
+                            Button { text: root.search_scope == 2 ? "✓ 本年" : "本年"; clicked => { root.search_scope = 2; root.search(root.search_query, 2); } }
+                            Rectangle { horizontal-stretch: 1; }
+                        }
+                        HorizontalLayout {
+                            height: 44px;
+                            spacing: 8px;
+                            LineEdit {
+                                text <=> root.search_query;
+                                placeholder-text: "搜索当前范围内的记录...";
+                                accepted => { root.search(root.search_query, root.search_scope); }
+                            }
+                            Button { text: "搜索"; clicked => { root.search(root.search_query, root.search_scope); } }
+                        }
+                        HorizontalLayout {
+                            spacing: 8px;
+                            Button { text: "☆ 保存当前搜索"; clicked => { root.save_search(root.search_query); } }
+                            Text { text: root.search_summary; color: #70b7ad; font-size: 12px; vertical-alignment: center; }
+                        }
+                        ListView {
+                            vertical-stretch: 1;
+                            for result in root.search_results : Rectangle {
+                                height: 46px;
+                                background: #102f2a;
+                                border-radius: 7px;
+                                VerticalLayout {
+                                    padding-left: 10px; padding-right: 10px; spacing: 2px;
+                                    Text { text: result.title; color: #edfffc; font-size: 13px; font-weight: 700; overflow: elide; }
+                                    Text { text: result.detail; color: #72aaa1; font-size: 11px; overflow: elide; }
+                                }
+                            }
+                        }
+                        Text { text: root.status_text; color: #578f87; font-size: 11px; overflow: elide; }
+                    }
+
+                    VerticalLayout {
+                        horizontal-stretch: 2;
+                        spacing: 14px;
+                        Rectangle {
+                            height: min(root.saved_searches.length * 48px + 24px, 220px);
+                            border-radius: 10px;
+                            background: #11302b;
+                            border-width: 1px;
+                            border-color: #214942;
+                            ListView {
+                                for query in root.saved_searches : Rectangle {
+                                    height: 46px;
+                                    background: transparent;
+                                    HorizontalLayout {
+                                        padding-left: 14px; padding-right: 14px; spacing: 8px;
+                                        Text { text: query; color: #f0fffd; font-size: 15px; font-weight: 700; horizontal-stretch: 1; vertical-alignment: center; }
+                                        Button { text: "搜索"; clicked => { root.search_query = query; root.search(query, root.search_scope); } }
+                                    }
+                                }
+                            }
+                        }
+                        Rectangle { height: 1px; background: #20534d; }
+                        HorizontalLayout {
+                            Text { text: "时间占比统计"; color: #effffc; font-size: 15px; font-weight: 800; horizontal-stretch: 1; }
+                            Text { text: "总计 " + root.total_duration; color: #effffc; font-size: 12px; font-weight: 700; }
+                        }
+                        ListView {
+                            vertical-stretch: 1;
+                            for category in root.categories : Rectangle {
+                                height: 43px;
+                                background: transparent;
+                                VerticalLayout {
+                                    spacing: 4px;
+                                    HorizontalLayout {
+                                        Text { text: category.name; color: #eafffb; font-size: 12px; font-weight: 700; horizontal-stretch: 1; }
+                                        Text { text: category.duration + " (" + category.percentage + ")"; color: #70b7ad; font-size: 11px; }
+                                    }
+                                    Rectangle {
+                                        height: 8px; border-radius: 4px; background: #183d37;
+                                        Rectangle { width: category.percentage_value * 4px; height: 8px; border-radius: 4px; background: category.color; }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    VerticalLayout {
+        padding: 22px;
+        spacing: 16px;
+
+        HorizontalLayout {
+            spacing: 12px;
+            height: 42px;
+
+            Text {
+                text: "Ros ChronoTrace";
+                color: #e1f5f1;
+                font-size: 28px;
+                font-weight: 800;
+                horizontal-stretch: 1;
+            }
+
+            ToolbarButton { text: "导出"; clicked => { root.export_json(); } }
+            ToolbarButton { text: "设置"; clicked => { root.open_settings(); } }
+            ToolbarButton { text: "检查更新"; clicked => { root.check_update(); } }
+            ToolbarButton { text: "? 帮助"; clicked => { root.show_help = true; } }
+            ToolbarButton { text: "前一天"; clicked => { root.previous_day(); } }
+            ToolbarButton { text: "今天"; clicked => { root.today(); } }
+            ToolbarButton { text: "后一天"; clicked => { root.next_day(); } }
+
+            Text {
+                text: root.current_date;
+                color: #e1f5f1;
+                font-size: 16px;
+                font-weight: 700;
+                vertical-alignment: center;
+            }
+
+        }
+
+        HorizontalLayout {
+            spacing: 12px;
+            height: 92px;
+
+            StatCard { title: "总时长"; value: root.total_duration; caption: "当前日期记录"; horizontal-stretch: 1; }
+            StatCard { title: "行为条目"; value: root.entry_count; caption: "点击条目后续可编辑"; horizontal-stretch: 1; }
+            StatCard { title: "截图点"; value: root.screenshot_count; caption: "自动截图标记"; horizontal-stretch: 1; }
+            StatCard { title: "进程采样"; value: root.process_count; caption: "前台应用秒级采样"; horizontal-stretch: 1; }
+        }
+
+        Rectangle {
+            height: 116px;
+            border-radius: 16px;
+            background: #0f1f1d;
+            border-width: 1px;
+            border-color: #1e3a36;
+
+            HorizontalLayout {
+                padding: 14px;
+                spacing: 12px;
+
+                VerticalLayout {
+                    spacing: 4px;
+                    horizontal-stretch: 1;
+
+                    Text {
+                        text: root.is_running ? "当前行为：" + root.active_label : "当前行为";
+                        color: root.is_running ? #8ee5da : #99b9b3;
+                        font-size: 13px;
+                        font-weight: 700;
+                    }
+
+                    LineEdit {
+                        placeholder-text: root.is_running ? "正在计时，停止后可开始新行为" : "输入要执行的行为，并点击开始";
+                        text <=> root.new_entry;
+                        enabled: !root.is_running;
+                    }
+
+                    HorizontalLayout {
+                        spacing: 6px;
+                        Button { text: root.new_category_id < 0 ? "✓ 未分类" : "未分类"; clicked => { root.new_category_id = -1; } }
+                        for category in root.categories : Button {
+                            text: root.new_category_id == category.id ? "✓ " + category.name : category.name;
+                            clicked => { root.new_category_id = category.id; }
+                        }
+                    }
+                }
+
+                Text {
+                    text: root.active_elapsed;
+                    color: root.is_running ? #e1f5f1 : #6fa79d;
+                    font-size: 24px;
+                    font-weight: 700;
+                    vertical-alignment: center;
+                }
+
+                Button {
+                    text: root.is_running ? "停止" : "开始";
+                    clicked => {
+                        if (root.is_running) {
+                            root.stop_entry();
+                        } else {
+                            root.start_entry(root.new_entry, root.new_category_id);
+                            root.new_entry = "";
+                        }
+                    }
+                }
+            }
+        }
+
+        TimelineView {
+            blocks: root.timeline_blocks;
+            screenshots: root.screenshot_markers;
+            process_runs: root.process_runs;
+            visible_hours: root.timeline_visible_hours;
+            view_start: root.timeline_view_start;
+            hover_text: root.timeline_hover_text;
+            entry_clicked(id) => { root.edit_entry(id); }
+            screenshot_clicked(x) => { root.preview_screenshot(x); }
+            zoom_in => { root.timeline_zoom_in(); }
+            zoom_out => { root.timeline_zoom_out(); }
+            pan_left => { root.timeline_pan_left(); }
+            pan_right => { root.timeline_pan_right(); }
+            range_created(start, end) => { root.create_range(start, end); }
+            hover_at(position) => { root.timeline_hover(position); }
+            entry_resized(id, position, is_start) => { root.resize_entry(id, position, is_start); }
+        }
+
+        HorizontalLayout {
+            spacing: 14px;
+            vertical-stretch: 1;
+
+            Rectangle {
+                horizontal-stretch: 2;
+                border-radius: 16px;
+                background: #0f1f1d;
+                border-width: 1px;
+                border-color: #1e3a36;
+
+                VerticalLayout {
+                    padding: 16px;
+                    spacing: 12px;
+
+                    HorizontalLayout {
+                        Text { text: "行为条目"; color: #e1f5f1; font-size: 18px; font-weight: 800; horizontal-stretch: 1; }
+                        Text { text: root.status_text; color: #99b9b3; font-size: 12px; vertical-alignment: center; }
+                    }
+
+                    if root.entries.length == 0 : Text {
+                        text: "这一天还没有时间条目。可以从上方输入框开始记录。";
+                        color: #6fa79d;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+
+                    ListView {
+                        for entry in root.entries : Rectangle {
+                            height: 58px;
+                            background: #152825;
+                            border-radius: 10px;
+                            border-width: 1px;
+                            border-color: #1e3a36;
+
+                            HorizontalLayout {
+                                padding-left: 12px;
+                                padding-right: 12px;
+                                spacing: 12px;
+
+                                Rectangle { width: 6px; border-radius: 3px; background: #14b8a6; }
+
+                                VerticalLayout {
+                                    spacing: 4px;
+                                    horizontal-stretch: 1;
+                                    Text { text: entry.label; color: #e1f5f1; font-size: 15px; font-weight: 700; overflow: elide; }
+                                    Text { text: entry.time_range; color: #99b9b3; font-size: 12px; }
+                                }
+
+                                Text { text: entry.duration; color: #e1f5f1; font-size: 13px; font-weight: 700; vertical-alignment: center; }
+                            }
+                            TouchArea { clicked => { root.edit_entry(entry.id); } }
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                horizontal-stretch: 1;
+                border-radius: 16px;
+                background: #0f1f1d;
+                border-width: 1px;
+                border-color: #1e3a36;
+
+                VerticalLayout {
+                    padding: 16px;
+                    spacing: 12px;
+
+                    Text { text: "分类与搜索"; color: #e1f5f1; font-size: 18px; font-weight: 800; }
+
+                    HorizontalLayout {
+                        height: 44px;
+                        spacing: 8px;
+                        LineEdit {
+                            text <=> root.search_query;
+                            placeholder-text: "搜索当天行为或窗口标题";
+                            accepted => { root.search(root.search_query, root.search_scope); }
+                        }
+                        Button { text: "搜索"; clicked => { root.search(root.search_query, root.search_scope); } }
+                        Button { text: "保存"; clicked => { root.save_search(root.search_query); } }
+                    }
+                    HorizontalLayout {
+                        spacing: 6px;
+                        Button { text: root.search_scope == 0 ? "✓ 当日" : "当日"; clicked => { root.search_scope = 0; root.search(root.search_query, 0); } }
+                        Button { text: root.search_scope == 1 ? "✓ 本月" : "本月"; clicked => { root.search_scope = 1; root.search(root.search_query, 1); } }
+                        Button { text: root.search_scope == 2 ? "✓ 本年" : "本年"; clicked => { root.search_scope = 2; root.search(root.search_query, 2); } }
+                    }
+
+                    HorizontalLayout {
+                        spacing: 6px;
+                        for query in root.saved_searches : Button {
+                            text: query;
+                            clicked => { root.search_query = query; root.search(query, root.search_scope); }
+                        }
+                    }
+
+                    Text { text: root.search_summary; color: #99b9b3; font-size: 12px; }
+
+                    ListView {
+                        height: min(root.search_results.length * 42px, 126px);
+                        for result in root.search_results : Rectangle {
+                            height: 40px;
+                            background: #152825;
+                            border-radius: 8px;
+                            VerticalLayout {
+                                padding-left: 9px;
+                                padding-right: 9px;
+                                spacing: 2px;
+                                Text { text: result.title; color: #e1f5f1; font-size: 12px; overflow: elide; }
+                                Text { text: result.detail; color: #6fa79d; font-size: 10px; overflow: elide; }
+                            }
+                        }
+                    }
+
+                    Text { text: "类别"; color: #99b9b3; font-size: 12px; font-weight: 700; }
+
+                    ScrollView {
+                        for category in root.categories : Rectangle {
+                            height: 34px;
+                            border-radius: 999px;
+                            background: #152825;
+                            border-width: 1px;
+                            border-color: #1e3a36;
+
+                            HorizontalLayout {
+                                padding-left: 10px;
+                                padding-right: 10px;
+                                spacing: 8px;
+                                Rectangle { width: 12px; height: 12px; border-radius: 6px; background: category.color; vertical-stretch: 0; }
+                                Text { text: category.name; color: #e1f5f1; font-size: 13px; vertical-alignment: center; horizontal-stretch: 1; }
+                                Text { text: category.duration + " · " + category.percentage; color: #6fa79d; font-size: 11px; vertical-alignment: center; }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if root.show_edit : Rectangle {
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: parent.height;
+        background: #00000088;
+
+        TouchArea { clicked => { root.close_edit(); } }
+
+        Rectangle {
+            width: 560px;
+            height: 390px;
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            border-radius: 18px;
+            background: #0f1f1d;
+            border-width: 1px;
+            border-color: #2d5b54;
+
+            VerticalLayout {
+                padding: 22px;
+                spacing: 14px;
+
+                Text { text: root.edit_dialog_title; color: #e1f5f1; font-size: 22px; font-weight: 800; }
+                Text { text: root.edit_time_range + " · " + root.edit_duration; color: #99b9b3; font-size: 13px; }
+
+                LineEdit {
+                    text <=> root.edit_label;
+                    placeholder-text: "行为标签";
+                }
+
+                HorizontalLayout {
+                    spacing: 10px;
+                    LineEdit { text <=> root.edit_start_time; placeholder-text: "开始 HH:MM:SS"; }
+                    LineEdit { text <=> root.edit_end_time; placeholder-text: "结束 HH:MM:SS"; }
+                }
+
+                HorizontalLayout {
+                    spacing: 6px;
+                    Button { text: root.edit_category_id < 0 ? "✓ 未分类" : "未分类"; clicked => { root.edit_category_id = -1; } }
+                    for category in root.categories : Button {
+                        text: root.edit_category_id == category.id ? "✓ " + category.name : category.name;
+                        clicked => { root.edit_category_id = category.id; }
+                    }
+                }
+
+                if root.edit_error != "" : Rectangle {
+                    height: 38px;
+                    border-radius: 10px;
+                    background: #351b1f;
+                    border-width: 1px;
+                    border-color: #7f1d1d;
+                    Text { text: root.edit_error; color: #fca5a5; horizontal-alignment: center; vertical-alignment: center; }
+                }
+
+                Rectangle { height: 1px; background: #1e3a36; }
+
+                HorizontalLayout {
+                    spacing: 10px;
+                    Button { text: "删除"; clicked => { root.delete_edit(); } }
+                    Rectangle { horizontal-stretch: 1; }
+                    Button { text: "取消"; clicked => { root.close_edit(); } }
+                    Button { text: "保存"; clicked => { root.save_edit(root.edit_label, root.edit_start_time, root.edit_end_time, root.edit_category_id); } }
+                }
+            }
+        }
+    }
+    if root.show_settings : Rectangle {
+        x: 0px; y: 0px; width: parent.width; height: parent.height;
+        background: #00000088;
+        TouchArea { clicked => { root.close_settings(); } }
+        Rectangle {
+            width: 640px; height: 650px;
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            border-radius: 18px;
+            background: #0f1f1d;
+            border-width: 1px;
+            border-color: #2d5b54;
+            VerticalLayout {
+                padding: 22px; spacing: 12px;
+                Text { text: "截图设置"; color: #e1f5f1; font-size: 22px; font-weight: 800; }
+                Text { text: "质量（1-100）"; color: #99b9b3; font-size: 12px; }
+                LineEdit { text <=> root.settings_quality; }
+                Text { text: "最大宽度（640-7680）"; color: #99b9b3; font-size: 12px; }
+                LineEdit { text <=> root.settings_width; }
+                Text { text: "最大文件大小 KB（20-2048）"; color: #99b9b3; font-size: 12px; }
+                LineEdit { text <=> root.settings_max_kb; }
+                Text { text: "存储目录（留空使用默认目录）"; color: #99b9b3; font-size: 12px; }
+                LineEdit { text <=> root.settings_storage; }
+                Button { text: "打开截图存储文件夹"; clicked => { root.open_screenshot_folder(); } }
+                Rectangle { height: 1px; background: #1e3a36; }
+                HorizontalLayout {
+                    Text { text: root.editing_category_id < 0 ? "新建类别" : "编辑类别"; color: #e1f5f1; font-size: 16px; font-weight: 700; horizontal-stretch: 1; }
+                    if root.editing_category_id >= 0 : Button {
+                        text: "退出编辑";
+                        clicked => { root.begin_edit_category(-1, "", "#14b8a6"); }
+                    }
+                }
+                HorizontalLayout {
+                    spacing: 8px;
+                    LineEdit { text <=> root.category_name; placeholder-text: "类别名称"; }
+                    LineEdit { text <=> root.category_color; placeholder-text: "#14b8a6"; width: 130px; }
+                    Button { text: root.editing_category_id < 0 ? "添加" : "保存类别"; clicked => {
+                        root.save_category(root.editing_category_id, root.category_name, root.category_color);
+                    } }
+                }
+                ListView {
+                    height: 120px;
+                    for category in root.categories : Rectangle {
+                        height: 36px; background: #152825; border-radius: 8px;
+                        HorizontalLayout {
+                            padding-left: 9px; padding-right: 9px; spacing: 8px;
+                            Rectangle { width: 12px; height: 12px; border-radius: 6px; background: category.color; vertical-stretch: 0; }
+                            Text { text: category.name; color: #e1f5f1; font-size: 12px; vertical-alignment: center; horizontal-stretch: 1; }
+                            Button { text: "编辑"; clicked => { root.begin_edit_category(category.id, category.name, category.color_text); } }
+                            Button { text: "删除"; clicked => { root.delete_category(category.id); } }
+                        }
+                    }
+                }
+                if root.settings_error != "" : Text { text: root.settings_error; color: #fca5a5; font-size: 12px; }
+                Rectangle { vertical-stretch: 1; }
+                HorizontalLayout {
+                    spacing: 10px;
+                    Rectangle { horizontal-stretch: 1; }
+                    Button { text: "取消"; clicked => { root.close_settings(); } }
+                    Button { text: "保存"; clicked => { root.save_settings(root.settings_quality, root.settings_width, root.settings_max_kb, root.settings_storage); } }
+                }
+            }
+        }
+    }
+    if root.show_screenshot : Rectangle {
+        x: 0px; y: 0px; width: parent.width; height: parent.height;
+        background: #000000aa;
+        TouchArea { clicked => { root.close_screenshot(); } }
+        Rectangle {
+            width: min(parent.width - 100px, 1000px);
+            height: min(parent.height - 100px, 700px);
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            border-radius: 16px; background: #0f1f1d;
+            border-width: 1px; border-color: #2d5b54;
+            VerticalLayout {
+                padding: 16px; spacing: 10px;
+                HorizontalLayout {
+                    Text { text: "截图 · " + root.screenshot_time; color: #e1f5f1; font-size: 18px; font-weight: 700; horizontal-stretch: 1; }
+                    Button { text: "打开原图"; clicked => { root.open_screenshot(); } }
+                    Button { text: "关闭"; clicked => { root.close_screenshot(); } }
+                }
+                Image { source: root.screenshot_image; image-fit: contain; }
+            }
+        }
+    }
+    if root.show_help : Rectangle {
+        x: 0px; y: 0px; width: parent.width; height: parent.height;
+        background: #00000099;
+        TouchArea { clicked => { root.show_help = false; } }
+        Rectangle {
+            width: 620px; height: 430px;
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            border-radius: 18px; background: #0f1f1d;
+            border-width: 1px; border-color: #2d5b54;
+            VerticalLayout {
+                padding: 24px; spacing: 14px;
+                HorizontalLayout {
+                    Text { text: "使用帮助"; color: #e1f5f1; font-size: 22px; font-weight: 800; horizontal-stretch: 1; }
+                    Button { text: "关闭"; clicked => { root.show_help = false; } }
+                }
+                Text { text: "• 在当前行为输入框填写标签，选择类别后点击开始。"; color: #c8e5df; font-size: 14px; }
+                Text { text: "• 点击时间轴行为条或下方列表可编辑标签、时间和类别。"; color: #c8e5df; font-size: 14px; }
+                Text { text: "• 拖动行为条左右边缘可调整时间范围。"; color: #c8e5df; font-size: 14px; }
+                Text { text: "• 在时间轴空白处拖拽可快速创建条目。"; color: #c8e5df; font-size: 14px; }
+                Text { text: "• 时间轴下方的 − / + 用于缩放，← / → 用于平移。"; color: #c8e5df; font-size: 14px; }
+                Text { text: "• 点击橙色截图点可预览或打开原图。"; color: #c8e5df; font-size: 14px; }
+                Text { text: "• 设置中可管理截图参数、存储目录和行为类别。"; color: #c8e5df; font-size: 14px; }
+                Rectangle { vertical-stretch: 1; }
+                Text { text: "数据默认存储于 %LocalAppData%\\RosChronoTrace"; color: #6fa79d; font-size: 12px; }
+            }
+        }
+    }
+}
+
+
+
+

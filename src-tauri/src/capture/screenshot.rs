@@ -236,7 +236,7 @@ fn has_sufficient_disk_space(path: &PathBuf) -> Result<bool, String> {
 /// Tauri command to get screenshot path for a given timestamp
 ///
 /// Returns the file path if a screenshot exists within 5 minutes of the timestamp
-#[tauri::command]
+#[cfg_attr(feature = "legacy-tauri", tauri::command)]
 #[specta::specta]
 pub async fn get_screenshot_for_time(
     timestamp: i64,
