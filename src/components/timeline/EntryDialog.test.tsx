@@ -2,6 +2,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { EntryDialog } from './EntryDialog';
+import { EditEntryDialog } from './EditEntryDialog';
 import { api } from '../../services/api';
 
 jest.mock('../../services/api', () => ({
@@ -76,6 +77,75 @@ describe('EntryDialog', () => {
       label: 'Test Entry',
       category_id: undefined,
     });
+  });
+
+  it('shows categories directly in the dialog and submits the selected category', async () => {
+    mockGetCategories.mockResolvedValue([
+      { id: 1, name: '工作', color: '#2563eb' },
+      { id: 2, name: '休息', color: '#16a34a' },
+    ]);
+
+    renderWithQueryClient(
+      <EntryDialog
+        startTime={mockStartTime}
+        endTime={mockEndTime}
+        onSubmit={mockOnSubmit}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    const workCategory = await screen.findByRole('button', { name: '工作' });
+    expect(screen.getByRole('button', { name: '休息' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '未分类' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('button', { name: '分类' })).not.toBeInTheDocument();
+
+    fireEvent.click(workCategory);
+    expect(workCategory).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.change(screen.getByPlaceholderText('你刚刚在做什么？'), {
+      target: { value: '分类测试' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '创建条目' }));
+
+    expect(mockOnSubmit).toHaveBeenCalledWith({
+      start_time: mockStartTime,
+      end_time: mockEndTime,
+      label: '分类测试',
+      category_id: 1,
+    });
+  });
+
+  it('shows categories directly when editing an existing entry', async () => {
+    mockGetCategories.mockResolvedValue([
+      { id: 1, name: '工作', color: '#2563eb' },
+      { id: 2, name: '休息', color: '#16a34a' },
+    ]);
+    const onSave = jest.fn();
+
+    renderWithQueryClient(
+      <EditEntryDialog
+        entry={{
+          id: 7,
+          start_time: mockStartTime,
+          end_time: mockEndTime,
+          label: '已有条目',
+          category_id: 2,
+        }}
+        onSave={onSave}
+        onDelete={jest.fn()}
+        onRestart={jest.fn()}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    const workCategory = await screen.findByRole('button', { name: '工作' });
+    expect(screen.getByRole('button', { name: '休息' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('button', { name: '分类' })).not.toBeInTheDocument();
+
+    fireEvent.click(workCategory);
+    fireEvent.click(screen.getByRole('button', { name: '保存修改' }));
+
+    expect(onSave).toHaveBeenCalledWith(7, { category_id: 1 });
   });
 
   it('does not submit when label is empty', () => {

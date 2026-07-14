@@ -1,15 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Check } from 'lucide-react';
 import { api } from '../../services/api';
 
 interface CategorySelectorProps {
   selectedCategoryId?: number;
   onSelect: (categoryId?: number) => void;
+  display?: 'dropdown' | 'inline';
 }
 
 export const CategorySelector: React.FC<CategorySelectorProps> = ({
   selectedCategoryId,
   onSelect,
+  display = 'dropdown',
 }) => {
   const selectorRef = useRef<HTMLDivElement | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -22,7 +25,7 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
   const selectedCategory = categories.find((c) => c.id === selectedCategoryId);
 
   useEffect(() => {
-    if (!showDropdown) {
+    if (display === 'inline' || !showDropdown) {
       return;
     }
 
@@ -45,7 +48,44 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
       document.removeEventListener('mousedown', handleOutsidePointer);
       document.removeEventListener('touchstart', handleOutsidePointer);
     };
-  }, [showDropdown]);
+  }, [display, showDropdown]);
+
+  if (display === 'inline') {
+    return (
+      <div className="category-inline-list" role="group" aria-label="选择分类">
+        {categories.map((category) => {
+          const isSelected = selectedCategoryId === category.id;
+
+          return (
+            <button
+              key={category.id}
+              type="button"
+              className={`category-inline-option${isSelected ? ' is-selected' : ''}`}
+              style={{ '--category-color': category.color } as React.CSSProperties}
+              aria-pressed={isSelected}
+              title={category.name}
+              onClick={() => onSelect(category.id)}
+            >
+              <span className="category-dot" style={{ backgroundColor: category.color }} aria-hidden="true" />
+              <span className="category-inline-name">{category.name}</span>
+              <Check className="category-inline-check" size={14} strokeWidth={2.5} aria-hidden="true" />
+            </button>
+          );
+        })}
+
+        <button
+          type="button"
+          className={`category-inline-option category-inline-option-neutral${selectedCategoryId === undefined ? ' is-selected' : ''}`}
+          aria-pressed={selectedCategoryId === undefined}
+          onClick={() => onSelect(undefined)}
+        >
+          <span className="category-dot" aria-hidden="true" />
+          <span className="category-inline-name">未分类</span>
+          <Check className="category-inline-check" size={14} strokeWidth={2.5} aria-hidden="true" />
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="category-selector" ref={selectorRef}>

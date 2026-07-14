@@ -247,6 +247,7 @@ export const TimeEntryDialog: React.FC<TimeEntryDialogProps> = (props) => {
               <label className="field-label">分类</label>
               <CategorySelector
                 selectedCategoryId={categoryId}
+                display="inline"
                 onSelect={(id) => {
                   setLocalError(null);
                   setCategoryId(id);
