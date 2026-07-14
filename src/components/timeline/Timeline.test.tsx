@@ -213,11 +213,11 @@ describe('Timeline', () => {
     expect(screen.getByLabelText('时间轴缩放小时数')).toBeInTheDocument();
   });
 
-  it('zooms with ctrl+wheel', () => {
+  it('zooms the timeline with alt+wheel', () => {
     renderWithQueryClient(<Timeline date={mockDate} timeEntries={mockTimeEntries} />);
 
     const scrollContainer = screen.getByTestId('timeline-scroll-container');
-    fireEvent.wheel(scrollContainer, { deltaY: -100, ctrlKey: true, clientX: 200 });
+    fireEvent.wheel(scrollContainer, { deltaY: -100, altKey: true, clientX: 200 });
 
     expect(screen.getByText('当前视野：23 小时')).toBeInTheDocument();
   });
