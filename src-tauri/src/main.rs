@@ -1,13 +1,12 @@
 // Prevents additional console window on Windows in release
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod app_settings;
 mod capture;
 mod data;
 mod idle;
-mod app_settings;
 mod types;
-
-use tauri::Manager;
+mod window_lifecycle;
 
 fn main() {
     // Initialize database on startup
@@ -16,48 +15,23 @@ fn main() {
         std::process::exit(1);
     }
 
-    // Start background window capture task
-    std::thread::spawn(|| {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(start_window_capture());
-    });
-
-    // Start background screenshot capture task
-    std::thread::spawn(|| {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(start_screenshot_capture());
-    });
-
-    // Start per-second process sampling for status bar analytics
-    std::thread::spawn(|| {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(start_process_sampling());
-    });
-
-    // Cleanup old process samples (startup + hourly)
-    std::thread::spawn(|| {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(start_process_samples_cleanup());
-    });
-
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
+        // Must be the first plugin so secondary launches never start duplicate background tasks.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            window_lifecycle::request_main_window(app);
+        }))
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .manage(window_lifecycle::WindowLifecycleState::default())
         .setup(|app| {
-            let app_handle = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                tokio::time::sleep(tokio::time::Duration::from_millis(2500)).await;
-                if let Some(window) = app_handle.get_webview_window("main") {
-                    if let Err(err) = window.show() {
-                        eprintln!("Fallback show window failed: {}", err);
-                    }
-                }
-            });
+            window_lifecycle::setup(app)?;
+            start_background_tasks();
             Ok(())
         })
+        .on_window_event(window_lifecycle::handle_window_event)
         .invoke_handler(tauri::generate_handler![
             data::get_time_entries,
             data::get_time_entries_by_range,
@@ -79,8 +53,25 @@ fn main() {
             app_settings::resolve_screenshot_storage_dir_cmd,
             app_settings::resolve_screenshot_file_path_cmd,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application");
+
+    app.run(|_app_handle, event| {
+        if let tauri::RunEvent::ExitRequested { code, api, .. } = event {
+            // Destroying the last WebView must not stop screenshot capture. Explicit exits
+            // (tray menu, updater restart, process command) carry an exit code and are allowed.
+            if code.is_none() {
+                api.prevent_exit();
+            }
+        }
+    });
+}
+
+fn start_background_tasks() {
+    tauri::async_runtime::spawn(start_window_capture());
+    tauri::async_runtime::spawn(start_screenshot_capture());
+    tauri::async_runtime::spawn(start_process_sampling());
+    tauri::async_runtime::spawn(start_process_samples_cleanup());
 }
 
 /// Start background window metadata capture task
