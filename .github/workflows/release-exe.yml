@@ -22,6 +22,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -62,6 +64,26 @@ jobs:
           npx tauri signer sign -f $keyPath -p "$env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD" $testPath
           Write-Host "Updater signing secret check passed."
 
+      - name: Read release notes from changelog
+        id: release_notes
+        shell: pwsh
+        run: |
+          $version = $env:RELEASE_TAG -replace '^v', ''
+          $escapedVersion = [regex]::Escape($version)
+          $changelog = Get-Content -Raw -Encoding UTF8 CHANGELOG.md
+          $pattern = "(?ms)^## \[$escapedVersion\](?: - [^\r\n]+)?\r?\n.*?(?=^## \[|\z)"
+          $match = [regex]::Match($changelog, $pattern)
+
+          if (-not $match.Success) {
+            throw "CHANGELOG.md does not contain a release section for $version."
+          }
+
+          $body = $match.Value.Trim()
+          $delimiter = "RELEASE_NOTES_$([guid]::NewGuid().ToString('N'))"
+          "body<<$delimiter" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          $body | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          $delimiter | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
       - name: Build and publish EXE
         uses: tauri-apps/tauri-action@v0
         env:
@@ -71,7 +93,7 @@ jobs:
         with:
           tagName: ${{ env.RELEASE_TAG }}
           releaseName: Ro's ChronoTrace ${{ env.RELEASE_TAG }}
-          releaseBody: Download the *.exe installer from the Assets section.
+          releaseBody: ${{ steps.release_notes.outputs.body }}
           releaseDraft: false
           prerelease: false
           args: --bundles nsis
