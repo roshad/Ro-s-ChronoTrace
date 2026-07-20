@@ -244,7 +244,13 @@ export const TimerInput: React.FC<TimerInputProps> = ({
         }}
       />
 
-      <CategorySelector selectedCategoryId={categoryId} onSelect={setCategoryId} />
+      <div className="timer-category-options">
+        <CategorySelector
+          selectedCategoryId={categoryId}
+          onSelect={setCategoryId}
+          display="inline"
+        />
+      </div>
 
       {activeTimer && <div className="mono-time timer-value">{formatElapsedTime(elapsed)}</div>}
 

@@ -285,6 +285,11 @@ select {
   flex: 1 1 280px;
 }
 
+.timer-category-options {
+  flex: 0 1 auto;
+  max-width: 100%;
+}
+
 .timer-value {
   min-width: 112px;
   text-align: right;
@@ -1029,6 +1034,10 @@ select {
   .timer-panel {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .timer-category-options .category-inline-list {
+    width: 100%;
   }
 
   .timer-value {
