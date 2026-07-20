@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-07-21
+
+### ✨ Added
+
+- 主窗口重建时恢复上次的位置、尺寸、最大化状态和时间轴滚动位置。
+- 新增窗口行为设置，可关闭“失焦 1 分钟后自动销毁界面”，让主窗口保持常驻。
+
+### 🔄 Changed
+
+- 主界面当前行为操作区直接横向展示分类，无需再打开分类下拉菜单。
+
 ## [1.4.0] - 2026-07-20
 
 ### ✨ Added
@@ -18,5 +29,6 @@
 - 主窗口失去焦点一分钟后会销毁闲置 WebView，从托盘打开时自动重建。
 - 关闭主窗口不再退出应用；如需完全退出，请使用系统托盘中的“退出”。
 
-[Unreleased]: https://github.com/roshad/Ro-s-ChronoTrace/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/roshad/Ro-s-ChronoTrace/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/roshad/Ro-s-ChronoTrace/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/roshad/Ro-s-ChronoTrace/compare/v1.3.0...v1.4.0
