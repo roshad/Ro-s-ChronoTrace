@@ -6,6 +6,8 @@ use tauri::{
     App, AppHandle, Manager, WebviewWindowBuilder, Window, WindowEvent,
 };
 
+use crate::app_settings::{self, MainWindowState};
+
 const MAIN_WINDOW_LABEL: &str = "main";
 const TRAY_ID: &str = "main-tray";
 const SHOW_MENU_ID: &str = "show-main-window";
@@ -78,6 +80,7 @@ pub fn handle_window_event(window: &Window, event: &WindowEvent) {
     }
 
     match event {
+        WindowEvent::Moved(_) | WindowEvent::Resized(_) => save_main_window_state(window),
         WindowEvent::Focused(true) => {
             window
                 .app_handle()
@@ -85,6 +88,7 @@ pub fn handle_window_event(window: &Window, event: &WindowEvent) {
                 .cancel_pending_destroy();
         }
         WindowEvent::Focused(false) => {
+            save_main_window_state(window);
             schedule_destroy(window.app_handle().clone());
         }
         // Closing the window destroys the WebView immediately. The app-level
@@ -157,7 +161,9 @@ fn show_or_create_main_window(app: &AppHandle) -> Result<(), String> {
         .cloned()
         .ok_or_else(|| "main window configuration is missing".to_string())?;
 
-    WebviewWindowBuilder::from_config(app, &config)
+    let window_state = app_settings::load_main_window_state()
+        .map_err(|error| format!("failed to load main window state: {error}"))?;
+    let mut builder = WebviewWindowBuilder::from_config(app, &config)
         .map_err(|error| format!("failed to load main window configuration: {error}"))?
         .on_page_load(|window, payload| {
             if matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
@@ -168,12 +174,66 @@ fn show_or_create_main_window(app: &AppHandle) -> Result<(), String> {
                     eprintln!("Failed to focus recreated main window: {error}");
                 }
             }
-        })
+        });
+
+    if let Some(state) = window_state {
+        if state.width > 0 && state.height > 0 {
+            builder = builder
+                .position(f64::from(state.x), f64::from(state.y))
+                .inner_size(f64::from(state.width), f64::from(state.height));
+        }
+        builder = builder.maximized(state.maximized);
+    }
+
+    builder
         .build()
         .map_err(|error| format!("failed to recreate main WebView: {error}"))?;
 
     schedule_initial_show_fallback(app.clone());
     Ok(())
+}
+
+fn save_main_window_state(window: &Window) {
+    let maximized = match window.is_maximized() {
+        Ok(maximized) => maximized,
+        Err(error) => {
+            eprintln!("Failed to query main window maximized state: {error}");
+            return;
+        }
+    };
+
+    let mut state = match app_settings::load_main_window_state() {
+        Ok(Some(state)) => state,
+        Ok(None) => MainWindowState::default(),
+        Err(error) => {
+            eprintln!("Failed to load saved main window state: {error}");
+            MainWindowState::default()
+        }
+    };
+
+    state.maximized = maximized;
+    if !maximized {
+        match (window.outer_position(), window.inner_size()) {
+            (Ok(position), Ok(size)) => {
+                state.x = position.x;
+                state.y = position.y;
+                state.width = size.width;
+                state.height = size.height;
+            }
+            (Err(error), _) => {
+                eprintln!("Failed to query main window position: {error}");
+                return;
+            }
+            (_, Err(error)) => {
+                eprintln!("Failed to query main window size: {error}");
+                return;
+            }
+        }
+    }
+
+    if let Err(error) = app_settings::save_main_window_state(&state) {
+        eprintln!("Failed to save main window state: {error}");
+    }
 }
 
 fn schedule_initial_show_fallback(app: AppHandle) {

@@ -1,4 +1,4 @@
-﻿use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -9,6 +9,15 @@ pub struct ScreenshotSettings {
     pub max_width: u32,
     pub max_file_kb: u32,
     pub storage_dir: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct MainWindowState {
+    pub x: i32,
+    pub y: i32,
+    pub width: u32,
+    pub height: u32,
+    pub maximized: bool,
 }
 
 impl Default for ScreenshotSettings {
@@ -28,12 +37,14 @@ impl ScreenshotSettings {
         self.max_width = self.max_width.clamp(640, 7680);
         self.max_file_kb = self.max_file_kb.clamp(20, 2048);
 
-        self.storage_dir = self
-            .storage_dir
-            .and_then(|p| {
-                let trimmed = p.trim().to_string();
-                if trimmed.is_empty() { None } else { Some(trimmed) }
-            });
+        self.storage_dir = self.storage_dir.and_then(|p| {
+            let trimmed = p.trim().to_string();
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(trimmed)
+            }
+        });
 
         self
     }
@@ -51,7 +62,43 @@ fn settings_file_path() -> Result<PathBuf, String> {
     Ok(get_data_directory()?.join("settings.json"))
 }
 
-pub fn resolve_screenshot_storage_dir(configured_storage_dir: Option<String>) -> Result<PathBuf, String> {
+fn main_window_state_file_path() -> Result<PathBuf, String> {
+    Ok(get_data_directory()?.join("main-window-state.json"))
+}
+
+pub fn load_main_window_state() -> Result<Option<MainWindowState>, String> {
+    let path = main_window_state_file_path()?;
+    if !path.exists() {
+        return Ok(None);
+    }
+
+    let raw = fs::read_to_string(&path)
+        .map_err(|e| format!("Failed to read window state file {}: {}", path.display(), e))?;
+    serde_json::from_str(&raw).map(Some).map_err(|e| {
+        format!(
+            "Failed to parse window state file {}: {}",
+            path.display(),
+            e
+        )
+    })
+}
+
+pub fn save_main_window_state(state: &MainWindowState) -> Result<(), String> {
+    let path = main_window_state_file_path()?;
+    let serialized = serde_json::to_string(state)
+        .map_err(|e| format!("Failed to serialize window state: {}", e))?;
+    fs::write(&path, serialized).map_err(|e| {
+        format!(
+            "Failed to write window state file {}: {}",
+            path.display(),
+            e
+        )
+    })
+}
+
+pub fn resolve_screenshot_storage_dir(
+    configured_storage_dir: Option<String>,
+) -> Result<PathBuf, String> {
     let configured = configured_storage_dir
         .as_deref()
         .map(str::trim)
@@ -94,7 +141,9 @@ pub fn load_screenshot_settings() -> Result<ScreenshotSettings, String> {
     Ok(settings.normalized())
 }
 
-pub fn save_screenshot_settings(settings: ScreenshotSettings) -> Result<ScreenshotSettings, String> {
+pub fn save_screenshot_settings(
+    settings: ScreenshotSettings,
+) -> Result<ScreenshotSettings, String> {
     let normalized = settings.normalized();
     let path = settings_file_path()?;
     let serialized = serde_json::to_string_pretty(&normalized)
@@ -133,4 +182,3 @@ pub async fn resolve_screenshot_file_path_cmd(stored_path: String) -> Result<Str
     let resolved = resolve_screenshot_file_path(&stored_path)?;
     Ok(resolved.to_string_lossy().to_string())
 }
-

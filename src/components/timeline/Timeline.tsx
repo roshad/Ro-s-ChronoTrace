@@ -55,6 +55,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
   const MIN_VISIBLE_HOURS = 4;
   const MAX_VISIBLE_HOURS = 24;
   const ZOOM_STORAGE_KEY = 'timeline-visible-hours';
+  const SCROLL_POSITION_STORAGE_KEY = 'timeline-scroll-position';
   const height = 120;
   const ENTRY_BAR_Y = 20;
   const ENTRY_BAR_HEIGHT = 60;
@@ -67,6 +68,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const suppressEntryClickRef = useRef(false);
   const pendingZoomAnchorRef = useRef<{ ratio: number; viewportOffset: number } | null>(null);
+  const restoredScrollPositionRef = useRef(false);
   const [containerWidth, setContainerWidth] = useState(0);
   const [visibleHours, setVisibleHours] = useState(() => {
     try {
@@ -109,6 +111,49 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
       // ignore localStorage errors
     }
   }, [visibleHours]);
+
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer || restoredScrollPositionRef.current) {
+      return;
+    }
+
+    const maxScrollLeft = scrollContainer.scrollWidth - scrollContainer.clientWidth;
+    if (maxScrollLeft <= 0) {
+      return;
+    }
+
+    try {
+      const stored = Number(window.localStorage.getItem(SCROLL_POSITION_STORAGE_KEY));
+      if (Number.isFinite(stored)) {
+        scrollContainer.scrollLeft = Math.max(0, Math.min(1, stored)) * maxScrollLeft;
+      }
+    } catch {
+      // ignore localStorage errors
+    }
+    restoredScrollPositionRef.current = true;
+  }, [timelineWidth]);
+
+  const handleScroll = () => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) {
+      return;
+    }
+
+    const maxScrollLeft = scrollContainer.scrollWidth - scrollContainer.clientWidth;
+    if (maxScrollLeft <= 0) {
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(
+        SCROLL_POSITION_STORAGE_KEY,
+        String(scrollContainer.scrollLeft / maxScrollLeft),
+      );
+    } catch {
+      // ignore localStorage errors
+    }
+  };
 
   const wrapLabelLines = React.useCallback((label: string, maxWidth: number, maxLines: number) => {
     const normalized = label.trim();
@@ -643,6 +688,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
           ref={scrollContainerRef}
           data-testid="timeline-scroll-container"
           className="timeline-scroll-container"
+          onScroll={handleScroll}
           onWheel={handleScrollWheel}
         >
           <svg

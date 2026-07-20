@@ -230,6 +230,31 @@ describe('Timeline', () => {
     expect(screen.getByText('当前视野：7 小时')).toBeInTheDocument();
   });
 
+  it('restores the previous scroll position from localStorage on startup', () => {
+    window.localStorage.setItem('timeline-scroll-position', '0.5');
+    const scrollContainerPrototype = HTMLDivElement.prototype;
+    const clientWidth = Object.getOwnPropertyDescriptor(scrollContainerPrototype, 'clientWidth');
+    const scrollWidth = Object.getOwnPropertyDescriptor(scrollContainerPrototype, 'scrollWidth');
+    Object.defineProperty(scrollContainerPrototype, 'clientWidth', { configurable: true, value: 200 });
+    Object.defineProperty(scrollContainerPrototype, 'scrollWidth', { configurable: true, value: 1000 });
+
+    try {
+      renderWithQueryClient(<Timeline date={mockDate} timeEntries={mockTimeEntries} />);
+      expect(screen.getByTestId('timeline-scroll-container').scrollLeft).toBe(400);
+    } finally {
+      if (clientWidth) {
+        Object.defineProperty(scrollContainerPrototype, 'clientWidth', clientWidth);
+      } else {
+        Reflect.deleteProperty(scrollContainerPrototype, 'clientWidth');
+      }
+      if (scrollWidth) {
+        Object.defineProperty(scrollContainerPrototype, 'scrollWidth', scrollWidth);
+      } else {
+        Reflect.deleteProperty(scrollContainerPrototype, 'scrollWidth');
+      }
+    }
+  });
+
   it('keeps normal wheel as pan and not zoom', () => {
     renderWithQueryClient(<Timeline date={mockDate} timeEntries={mockTimeEntries} />);
 
