@@ -89,12 +89,29 @@ pub fn handle_window_event(window: &Window, event: &WindowEvent) {
         }
         WindowEvent::Focused(false) => {
             save_main_window_state(window);
-            schedule_destroy(window.app_handle().clone());
+            if auto_destroy_inactive_window_enabled() {
+                schedule_destroy(window.app_handle().clone());
+            } else {
+                window
+                    .app_handle()
+                    .state::<WindowLifecycleState>()
+                    .cancel_pending_destroy();
+            }
         }
         // Closing the window destroys the WebView immediately. The app-level
         // ExitRequested handler keeps the Rust process and screenshot task alive.
         WindowEvent::CloseRequested { .. } => {}
         _ => {}
+    }
+}
+
+fn auto_destroy_inactive_window_enabled() -> bool {
+    match app_settings::load_screenshot_settings() {
+        Ok(settings) => settings.auto_destroy_inactive_window,
+        Err(error) => {
+            eprintln!("Failed to load window lifecycle setting: {error}");
+            true
+        }
     }
 }
 

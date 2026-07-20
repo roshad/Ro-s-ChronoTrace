@@ -436,6 +436,25 @@ select {
   cursor: pointer;
 }
 
+.settings-toggle-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.settings-toggle-row input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--primary);
+}
+
+.settings-toggle-row .field-label,
+.settings-toggle-row .field-help {
+  display: block;
+}
+
 .category-inline-list {
   display: flex;
   align-items: center;

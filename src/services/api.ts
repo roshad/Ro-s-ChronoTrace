@@ -48,6 +48,7 @@ export interface ScreenshotSettings {
   max_width: number;
   max_file_kb: number;
   storage_dir?: string;
+  auto_destroy_inactive_window: boolean;
 }
 
 export interface SearchResult {

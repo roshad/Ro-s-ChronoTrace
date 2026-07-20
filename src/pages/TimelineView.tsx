@@ -38,6 +38,7 @@ export const TimelineView: React.FC = () => {
     max_width: 960,
     max_file_kb: 50,
     storage_dir: '',
+    auto_destroy_inactive_window: true,
   });
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
 
@@ -215,6 +216,7 @@ export const TimelineView: React.FC = () => {
       max_width: screenshotSettings.max_width,
       max_file_kb: screenshotSettings.max_file_kb,
       storage_dir: screenshotSettings.storage_dir ?? '',
+      auto_destroy_inactive_window: screenshotSettings.auto_destroy_inactive_window,
     });
   }, [screenshotSettings]);
 
@@ -304,8 +306,9 @@ export const TimelineView: React.FC = () => {
         max_width: saved.max_width,
         max_file_kb: saved.max_file_kb,
         storage_dir: saved.storage_dir ?? '',
+        auto_destroy_inactive_window: saved.auto_destroy_inactive_window,
       });
-      alert('截图设置已保存，新设置将在下一次自动截图时生效。');
+      alert('设置已保存；窗口行为立即生效，截图参数将在下一次自动截图时生效。');
       setShowSettings(false);
     },
     onError: (error) => {
@@ -899,6 +902,7 @@ export const TimelineView: React.FC = () => {
       max_width: maxWidth,
       max_file_kb: maxFileKb,
       storage_dir: settingsForm.storage_dir?.trim() || undefined,
+      auto_destroy_inactive_window: settingsForm.auto_destroy_inactive_window,
     });
   };
 
@@ -1095,7 +1099,29 @@ export const TimelineView: React.FC = () => {
             </div>
 
             <hr style={{ margin: '24px 0', border: 0, borderTop: '1px solid var(--border)' }} />
-            
+
+            <h3 style={{ fontSize: '1.1em', marginBottom: 16 }}>窗口行为</h3>
+            <div className="field">
+              <label className="settings-toggle-row">
+                <input
+                  type="checkbox"
+                  checked={settingsForm.auto_destroy_inactive_window}
+                  onChange={(e) => setSettingsForm((prev) => ({
+                    ...prev,
+                    auto_destroy_inactive_window: e.target.checked,
+                  }))}
+                />
+                <span>
+                  <span className="field-label">失焦 1 分钟后自动销毁界面</span>
+                  <span className="field-help">
+                    关闭后主窗口会一直保留在内存中；后台截图和活动记录不受影响。
+                  </span>
+                </span>
+              </label>
+            </div>
+
+            <hr style={{ margin: '24px 0', border: 0, borderTop: '1px solid var(--border)' }} />
+
             <h3 style={{ fontSize: '1.1em', marginBottom: 16 }}>应用更新</h3>
             <div className="field">
               <label className="field-label">应用更新</label>

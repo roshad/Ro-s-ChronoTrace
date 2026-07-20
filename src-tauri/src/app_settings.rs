@@ -9,6 +9,12 @@ pub struct ScreenshotSettings {
     pub max_width: u32,
     pub max_file_kb: u32,
     pub storage_dir: Option<String>,
+    #[serde(default = "default_auto_destroy_inactive_window")]
+    pub auto_destroy_inactive_window: bool,
+}
+
+fn default_auto_destroy_inactive_window() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -27,6 +33,7 @@ impl Default for ScreenshotSettings {
             max_width: 960,
             max_file_kb: 50,
             storage_dir: None,
+            auto_destroy_inactive_window: true,
         }
     }
 }
@@ -181,4 +188,19 @@ pub async fn resolve_screenshot_storage_dir_cmd(
 pub async fn resolve_screenshot_file_path_cmd(stored_path: String) -> Result<String, String> {
     let resolved = resolve_screenshot_file_path(&stored_path)?;
     Ok(resolved.to_string_lossy().to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ScreenshotSettings;
+
+    #[test]
+    fn legacy_settings_keep_auto_destroy_enabled() {
+        let settings: ScreenshotSettings = serde_json::from_str(
+            r#"{"quality":40,"max_width":960,"max_file_kb":50,"storage_dir":null}"#,
+        )
+        .expect("legacy settings should deserialize");
+
+        assert!(settings.auto_destroy_inactive_window);
+    }
 }
