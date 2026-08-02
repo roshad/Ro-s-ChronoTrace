@@ -6,6 +6,7 @@ pub mod process_samples;
 pub mod screenshot;
 pub mod search;
 pub mod time_entries;
+pub mod tray_summary;
 pub mod window_activity;
 
 // Re-export internal functions for use within the crate
@@ -59,7 +60,9 @@ pub async fn get_time_entries_by_range(
 pub async fn create_time_entry(
     entry: crate::types::TimeEntryInput,
 ) -> AppResult<crate::types::TimeEntry> {
-    with_db(|conn| time_entries::create_time_entry_impl(conn, &entry))
+    let result = with_db(|conn| time_entries::create_time_entry_impl(conn, &entry));
+    refresh_tray_summary_after_mutation(&result);
+    result
 }
 
 #[tauri::command]
@@ -67,12 +70,16 @@ pub async fn update_time_entry(
     id: i64,
     updates: crate::types::TimeEntryUpdate,
 ) -> AppResult<crate::types::TimeEntry> {
-    with_db(|conn| time_entries::update_time_entry_impl(conn, id, &updates))
+    let result = with_db(|conn| time_entries::update_time_entry_impl(conn, id, &updates));
+    refresh_tray_summary_after_mutation(&result);
+    result
 }
 
 #[tauri::command]
 pub async fn delete_time_entry(id: i64) -> AppResult<()> {
-    with_db(|conn| time_entries::delete_time_entry_impl(conn, id))
+    let result = with_db(|conn| time_entries::delete_time_entry_impl(conn, id));
+    refresh_tray_summary_after_mutation(&result);
+    result
 }
 
 #[tauri::command]
@@ -101,7 +108,9 @@ pub async fn get_categories() -> AppResult<Vec<crate::types::Category>> {
 pub async fn create_category(
     category: crate::types::CategoryInput,
 ) -> AppResult<crate::types::Category> {
-    with_db(|conn| categories::create_category_impl(conn, &category))
+    let result = with_db(|conn| categories::create_category_impl(conn, &category));
+    refresh_tray_summary_after_mutation(&result);
+    result
 }
 
 #[tauri::command]
@@ -109,12 +118,24 @@ pub async fn update_category(
     id: i64,
     category: crate::types::CategoryInput,
 ) -> AppResult<crate::types::Category> {
-    with_db(|conn| categories::update_category_impl(conn, id, &category))
+    let result = with_db(|conn| categories::update_category_impl(conn, id, &category));
+    refresh_tray_summary_after_mutation(&result);
+    result
 }
 
 #[tauri::command]
 pub async fn delete_category(id: i64) -> AppResult<()> {
-    with_db(|conn| categories::delete_category_impl(conn, id))
+    let result = with_db(|conn| categories::delete_category_impl(conn, id));
+    refresh_tray_summary_after_mutation(&result);
+    result
+}
+
+fn refresh_tray_summary_after_mutation<T>(result: &AppResult<T>) {
+    if result.is_ok() {
+        if let Err(error) = tray_summary::refresh_from_database() {
+            eprintln!("Failed to refresh tray summary: {error}");
+        }
+    }
 }
 
 #[tauri::command]

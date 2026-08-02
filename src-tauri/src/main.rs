@@ -5,6 +5,7 @@ mod app_settings;
 mod capture;
 mod data;
 mod idle;
+mod tray_panel;
 mod types;
 mod window_lifecycle;
 
@@ -42,6 +43,7 @@ fn main() {
             data::create_category,
             data::update_category,
             data::delete_category,
+            tray_panel::sync_active_timer,
             data::get_screenshot_timestamps_for_day,
             data::get_process_samples_for_day,
             data::search_activities_cmd,

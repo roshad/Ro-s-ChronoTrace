@@ -1,7 +1,6 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use tauri::{
-    menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     App, AppHandle, Manager, WebviewWindowBuilder, Window, WindowEvent,
 };
@@ -10,8 +9,6 @@ use crate::app_settings::{self, MainWindowState};
 
 const MAIN_WINDOW_LABEL: &str = "main";
 const TRAY_ID: &str = "main-tray";
-const SHOW_MENU_ID: &str = "show-main-window";
-const QUIT_MENU_ID: &str = "quit-app";
 const DESTROY_DELAY: std::time::Duration = std::time::Duration::from_secs(60);
 
 #[derive(Default)]
@@ -40,30 +37,31 @@ pub fn setup(app: &mut App) -> tauri::Result<()> {
 }
 
 fn setup_tray(app: &App) -> tauri::Result<()> {
-    let show_item = MenuItem::with_id(app, SHOW_MENU_ID, "打开主窗口", true, None::<&str>)?;
-    let quit_item = MenuItem::with_id(app, QUIT_MENU_ID, "退出", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&show_item, &quit_item])?;
+    if let Err(error) = crate::data::tray_summary::refresh_from_database() {
+        eprintln!("Failed to initialize tray summary: {error}");
+    }
+    crate::tray_panel::initialize(app.handle().clone());
 
     let mut tray = TrayIconBuilder::with_id(TRAY_ID)
         .tooltip("Ro's ChronoTrace")
-        .menu(&menu)
         .show_menu_on_left_click(false)
-        .on_menu_event(|app, event| match event.id().as_ref() {
-            SHOW_MENU_ID => request_main_window(app),
-            QUIT_MENU_ID => app.exit(0),
+        .on_tray_icon_event(|tray, event| match event {
+            TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } => request_main_window(tray.app_handle()),
+            TrayIconEvent::Click {
+                button: MouseButton::Right,
+                button_state: MouseButtonState::Up,
+                position,
+                ..
+            } => crate::tray_panel::show(
+                tray.app_handle(),
+                position.x.round() as i32,
+                position.y.round() as i32,
+            ),
             _ => {}
-        })
-        .on_tray_icon_event(|tray, event| {
-            if matches!(
-                event,
-                TrayIconEvent::Click {
-                    button: MouseButton::Left,
-                    button_state: MouseButtonState::Up,
-                    ..
-                }
-            ) {
-                request_main_window(tray.app_handle());
-            }
         });
 
     if let Some(icon) = app.default_window_icon() {

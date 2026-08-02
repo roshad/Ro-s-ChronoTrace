@@ -101,6 +101,12 @@ export const TimelineView: React.FC = () => {
     return map;
   }, [categories]);
 
+  useEffect(() => {
+    void api.syncActiveTimer(activeTimer?.entryId ?? null).catch((error) => {
+      console.error('Failed to sync active timer with tray:', error);
+    });
+  }, [activeTimer?.entryId, activeTimer?.label, activeTimer?.categoryId, categories]);
+
   const aggregateProcessUsage = React.useCallback((start: number, end: number) => {
     if (end <= start) {
       return new Map<string, number>();

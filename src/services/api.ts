@@ -100,6 +100,9 @@ export const api = {
   deleteTimeEntry: (id: number): Promise<void> =>
     invoke('delete_time_entry', { id }),
 
+  syncActiveTimer: (entryId: number | null): Promise<void> =>
+    invoke('sync_active_timer', { entryId }),
+
   // Screenshots
   getScreenshotForTime: (timestamp: number): Promise<ScreenshotInfo> =>
     invoke('get_screenshot_for_time', { timestamp }),
