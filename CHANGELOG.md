@@ -4,6 +4,22 @@
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-08-02
+
+### ✨ Added
+
+- 新增原生 Windows 托盘统计面板，右键托盘图标即可即时查看当前行为、分类、已执行时长和分类累计明细。
+- 新增按当前行为分类着色的托盘图标；未分类使用中性灰，空闲时恢复默认图标。
+
+### 🔄 Changed
+
+- 托盘统计统一由后端读取和计算，主窗口关闭后打开托盘面板仍能显示活动行为的最新分类累计时长。
+- 当前行为的开始、停止、删除以及名称和分类变更会同步到托盘面板与图标。
+
+### 🐛 Fixed
+
+- 修复活动行为的分类累计时长在托盘面板中不会持续更新，必须重新打开主窗口才刷新的问题。
+
 ## [1.5.0] - 2026-07-21
 
 ### ✨ Added
@@ -29,6 +45,7 @@
 - 主窗口失去焦点一分钟后会销毁闲置 WebView，从托盘打开时自动重建。
 - 关闭主窗口不再退出应用；如需完全退出，请使用系统托盘中的“退出”。
 
-[Unreleased]: https://github.com/roshad/Ro-s-ChronoTrace/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/roshad/Ro-s-ChronoTrace/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/roshad/Ro-s-ChronoTrace/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/roshad/Ro-s-ChronoTrace/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/roshad/Ro-s-ChronoTrace/compare/v1.3.0...v1.4.0
