@@ -64,14 +64,24 @@ pub fn search_activities_by_date_impl(
     .map_err(|e| format!("Failed to prepare search query: {}", e))?;
 
     let result_iter = stmt
-        .query_map(rusqlite::params![&search_pattern, start_of_day, end_of_day, &search_pattern, start_of_day, end_of_day], |row| {
-            Ok(crate::types::SearchResult {
-                r#type: row.get(0)?,
-                timestamp: row.get(1)?,
-                title: row.get(2)?,
-                process_name: row.get(3)?,
-            })
-        })
+        .query_map(
+            rusqlite::params![
+                &search_pattern,
+                start_of_day,
+                end_of_day,
+                &search_pattern,
+                start_of_day,
+                end_of_day
+            ],
+            |row| {
+                Ok(crate::types::SearchResult {
+                    r#type: row.get(0)?,
+                    timestamp: row.get(1)?,
+                    title: row.get(2)?,
+                    process_name: row.get(3)?,
+                })
+            },
+        )
         .map_err(|e| format!("Failed to execute search: {}", e))?;
 
     let mut results = Vec::new();

@@ -1,5 +1,5 @@
-﻿use chrono::Local;
 use base64::Engine;
+use chrono::Local;
 use std::fs;
 use std::path::PathBuf;
 
@@ -243,26 +243,24 @@ pub async fn get_screenshot_for_time(
 ) -> Result<crate::types::ScreenshotInfo, String> {
     crate::data::with_db(|conn| {
         let file_path = crate::data::get_screenshot_near_time(conn, timestamp, 300000)?; // 5 minutes tolerance
-        let data_url = file_path
-            .as_ref()
-            .and_then(|stored_path| {
-                let absolute_path = resolve_absolute_screenshot_path(stored_path)?;
-                match fs::read(&absolute_path) {
-                    Ok(bytes) => Some(format!(
-                        "data:{};base64,{}",
-                        infer_mime_type_from_path(stored_path),
-                        base64::engine::general_purpose::STANDARD.encode(bytes)
-                    )),
-                    Err(e) => {
-                        eprintln!(
-                            "Failed to read screenshot file for preview {}: {}",
-                            absolute_path.display(),
-                            e
-                        );
-                        None
-                    }
+        let data_url = file_path.as_ref().and_then(|stored_path| {
+            let absolute_path = resolve_absolute_screenshot_path(stored_path)?;
+            match fs::read(&absolute_path) {
+                Ok(bytes) => Some(format!(
+                    "data:{};base64,{}",
+                    infer_mime_type_from_path(stored_path),
+                    base64::engine::general_purpose::STANDARD.encode(bytes)
+                )),
+                Err(e) => {
+                    eprintln!(
+                        "Failed to read screenshot file for preview {}: {}",
+                        absolute_path.display(),
+                        e
+                    );
+                    None
                 }
-            });
+            }
+        });
 
         Ok(crate::types::ScreenshotInfo {
             file_path: file_path.clone(),
@@ -344,7 +342,8 @@ fn encode_webp_with_size_target(
             break;
         }
 
-        let (next_rgba, next_w, next_h) = downscale_rgba_nearest(&current_rgba, current_w, current_h, 0.85);
+        let (next_rgba, next_w, next_h) =
+            downscale_rgba_nearest(&current_rgba, current_w, current_h, 0.85);
         current_rgba = next_rgba;
         current_w = next_w;
         current_h = next_h;
@@ -377,12 +376,7 @@ fn bgra_to_rgba(bgra: &[u8]) -> Vec<u8> {
 }
 
 #[cfg(target_os = "windows")]
-fn downscale_rgba_nearest(
-    src: &[u8],
-    src_w: u32,
-    src_h: u32,
-    scale: f32,
-) -> (Vec<u8>, u32, u32) {
+fn downscale_rgba_nearest(src: &[u8], src_w: u32, src_h: u32, scale: f32) -> (Vec<u8>, u32, u32) {
     let dst_w = ((src_w as f32 * scale).round() as u32).max(1);
     let dst_h = ((src_h as f32 * scale).round() as u32).max(1);
     let mut dst = vec![0u8; (dst_w * dst_h * 4) as usize];
@@ -399,4 +393,3 @@ fn downscale_rgba_nearest(
 
     (dst, dst_w, dst_h)
 }
-

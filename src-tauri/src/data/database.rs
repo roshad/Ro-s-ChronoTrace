@@ -80,4 +80,3 @@ pub fn initialize_database(db_path: &std::path::Path) -> Result<(), String> {
 
     Ok(())
 }
-

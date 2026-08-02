@@ -10,9 +10,9 @@ pub mod tray_summary;
 pub mod window_activity;
 
 // Re-export internal functions for use within the crate
+pub use process_samples::{delete_process_samples_before, insert_process_sample};
 pub use screenshot::{get_screenshot_near_time, insert_screenshot};
 pub use window_activity::insert_window_activities_batch;
-pub use process_samples::{delete_process_samples_before, insert_process_sample};
 
 use once_cell::sync::Lazy;
 use rusqlite::Connection;
@@ -88,10 +88,12 @@ pub async fn search_activities_cmd(query: String) -> AppResult<Vec<crate::types:
 }
 
 #[tauri::command]
-pub async fn search_activities_by_range_cmd(query: String, start_time: i64, end_time: i64) -> AppResult<Vec<crate::types::SearchResult>> {
-    with_db(|conn| {
-        search::search_activities_by_date_impl(conn, &query, start_time, end_time)
-    })
+pub async fn search_activities_by_range_cmd(
+    query: String,
+    start_time: i64,
+    end_time: i64,
+) -> AppResult<Vec<crate::types::SearchResult>> {
+    with_db(|conn| search::search_activities_by_date_impl(conn, &query, start_time, end_time))
 }
 
 #[tauri::command]

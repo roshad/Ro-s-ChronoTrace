@@ -173,7 +173,10 @@ pub fn export_to_csv_impl(
             entry.end_time,
             entry.label,
             entry.color.as_deref().unwrap_or(""),
-            entry.category_id.map(|id| id.to_string()).unwrap_or_default()
+            entry
+                .category_id
+                .map(|id| id.to_string())
+                .unwrap_or_default()
         ));
     }
 
@@ -192,8 +195,11 @@ mod tests {
         conn.execute_batch(include_str!("migrations/V1__initial_schema.sql"))
             .unwrap();
         // Manually add category_id for tests since V1 doesn't have it
-        conn.execute("ALTER TABLE time_entries ADD COLUMN category_id INTEGER", [])
-            .unwrap();
+        conn.execute(
+            "ALTER TABLE time_entries ADD COLUMN category_id INTEGER",
+            [],
+        )
+        .unwrap();
         conn
     }
 

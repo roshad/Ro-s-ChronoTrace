@@ -3,7 +3,11 @@ use crate::types::ProcessSample;
 use chrono::{DateTime, Datelike, Utc};
 use rusqlite::{params, Connection};
 
-pub fn insert_process_sample(conn: &Connection, timestamp: i64, process_name: &str) -> AppResult<()> {
+pub fn insert_process_sample(
+    conn: &Connection,
+    timestamp: i64,
+    process_name: &str,
+) -> AppResult<()> {
     let day_id = timestamp_to_day_id(timestamp);
     conn.execute(
         "INSERT OR REPLACE INTO process_samples (timestamp, process_name, day_id) VALUES (?1, ?2, ?3)",

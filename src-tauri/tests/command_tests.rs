@@ -1,4 +1,4 @@
-﻿// Integration tests for Tauri commands
+// Integration tests for Tauri commands
 // These tests verify end-to-end command functionality
 
 #[cfg(test)]
@@ -351,4 +351,3 @@ mod tests {
         assert_eq!(count, 0, "Entry should not be created");
     }
 }
-
