@@ -19,6 +19,7 @@ type EditDialogProps = {
   onSave: (id: number, updates: TimeEntryUpdate) => void;
   onDelete: (id: number) => void;
   onRestart: (entry: TimeEntry) => void;
+  onReopen: (entry: TimeEntry) => void;
   canStart?: boolean;
   onCancel: () => void;
   errorMessage?: string | null;
@@ -281,9 +282,14 @@ export const TimeEntryDialog: React.FC<TimeEntryDialogProps> = (props) => {
               {(isEdit || shouldShowStartButton) && (
                 <div className="toolbar-row">
                   {isEdit && (
-                    <button type="button" onClick={() => setShowDeleteConfirm(true)} className="btn btn-ghost">
-                      删除
-                    </button>
+                    <>
+                      <button type="button" onClick={() => setShowDeleteConfirm(true)} className="btn btn-ghost">
+                        删除
+                      </button>
+                      <button type="button" onClick={() => props.onReopen(props.entry)} className="btn btn-success">
+                        再开
+                      </button>
+                    </>
                   )}
                   {shouldShowStartButton && (
                     <button type="button" onClick={handleStart} className="btn btn-secondary">

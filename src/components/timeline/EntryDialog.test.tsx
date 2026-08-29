@@ -134,6 +134,7 @@ describe('EntryDialog', () => {
         onSave={onSave}
         onDelete={jest.fn()}
         onRestart={jest.fn()}
+        onReopen={jest.fn()}
         onCancel={mockOnCancel}
       />
     );
@@ -146,6 +147,32 @@ describe('EntryDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: '保存修改' }));
 
     expect(onSave).toHaveBeenCalledWith(7, { category_id: 1 });
+  });
+
+  it('offers 再开 for an existing entry and passes the selected entry', () => {
+    const entry = {
+      id: 8,
+      start_time: mockStartTime,
+      end_time: mockEndTime,
+      label: '重复行为',
+      category_id: 1,
+    };
+    const onReopen = jest.fn();
+
+    renderWithQueryClient(
+      <EditEntryDialog
+        entry={entry}
+        onSave={jest.fn()}
+        onDelete={jest.fn()}
+        onRestart={jest.fn()}
+        onReopen={onReopen}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '再开' }));
+
+    expect(onReopen).toHaveBeenCalledWith(entry);
   });
 
   it('does not submit when label is empty', () => {

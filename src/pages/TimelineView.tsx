@@ -400,6 +400,36 @@ export const TimelineView: React.FC = () => {
     }
   };
 
+  const handleReopenEntry = async (entry: TimeEntry) => {
+    if (activeTimer) {
+      alert('请先停止当前计时，再开始新的行为。');
+      return;
+    }
+
+    const now = Date.now();
+    try {
+      const reopenedEntry = await api.createTimeEntry({
+        start_time: now,
+        end_time: now + 1000,
+        label: entry.label,
+        color: entry.color,
+        category_id: entry.category_id,
+      });
+
+      invalidateEntryDerivedQueries();
+      startTimer({
+        entryId: reopenedEntry.id,
+        startTime: now,
+        label: entry.label,
+        categoryId: entry.category_id,
+      });
+      setEditingEntry(null);
+    } catch (error) {
+      console.error('Failed to reopen time entry:', error);
+      alert(`再开行为失败：${error}`);
+    }
+  };
+
   const handleStartTimer = async (label: string, startTime: number, categoryId?: number): Promise<number> => {
     const entry = await createMutation.mutateAsync({
       label,
@@ -1023,6 +1053,7 @@ export const TimelineView: React.FC = () => {
           onSave={handleUpdateEntry}
           onDelete={handleDeleteEntry}
           onRestart={handleRestartEntry}
+          onReopen={handleReopenEntry}
           canStart={canStartEditingEntry}
           onCancel={() => {
             setEditEntryError(null);
@@ -1042,7 +1073,7 @@ export const TimelineView: React.FC = () => {
                 <ul>
                   <li>在时间轴上按住鼠标拖拽，可快速创建条目。</li>
                   <li>拖拽已有条目左右边缘，可快速调整时间范围。</li>
-                  <li>点击已有条目，可编辑、删除；仅最后一个条目可直接开始计时。</li>
+                  <li>点击已有条目，可编辑、删除；“再开”可从当前时间新建并开始相同的行为。</li>
                   <li>鼠标悬停时间轴，可查看对应时间的截图预览。</li>
                 </ul>
               </div>
