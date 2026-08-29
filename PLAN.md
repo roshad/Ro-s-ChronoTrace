@@ -78,6 +78,7 @@
 
 # Bugfix:
 - 😭：花了比较多力气
+- [x] 260804 时间轴滚动位置在软件退出或 WebView 销毁重建后恢复到最左：持久化最后有效位置，并在布局稳定后恢复；验证退出重启、失焦超过 1 分钟重建和窗口尺寸变化。
 - [x] 😭 260223 github 自动更新 powershell""展开了$变量导致密码错误。
 - [x] 260221 启动时显示白屏，过几秒才有画面
 - [x] 260213 删除当前正在进行的行为后console报错`TimelineView.tsx:252  Failed to update running timer entry: Failed to fetch time entry: Query returned no rows`

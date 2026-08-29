@@ -2,6 +2,24 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api, TimeEntry } from '../../services/api';
 
+const SCROLL_POSITION_STORAGE_KEY = 'timeline-scroll-position';
+
+const clampScrollRatio = (value: number) => Math.max(0, Math.min(1, value));
+
+const readStoredScrollRatio = (): number | null => {
+  try {
+    const raw = window.localStorage.getItem(SCROLL_POSITION_STORAGE_KEY);
+    if (raw === null || raw.trim() === '') {
+      return null;
+    }
+
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? clampScrollRatio(parsed) : null;
+  } catch {
+    return null;
+  }
+};
+
 export interface ProcessRun {
   startTime: number;
   endTime: number;
@@ -55,7 +73,6 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
   const MIN_VISIBLE_HOURS = 4;
   const MAX_VISIBLE_HOURS = 24;
   const ZOOM_STORAGE_KEY = 'timeline-visible-hours';
-  const SCROLL_POSITION_STORAGE_KEY = 'timeline-scroll-position';
   const height = 120;
   const ENTRY_BAR_Y = 20;
   const ENTRY_BAR_HEIGHT = 60;
@@ -69,6 +86,11 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
   const suppressEntryClickRef = useRef(false);
   const pendingZoomAnchorRef = useRef<{ ratio: number; viewportOffset: number } | null>(null);
   const restoredScrollPositionRef = useRef(false);
+  const isRestoringScrollPositionRef = useRef(false);
+  const isPageHidingRef = useRef(false);
+  const lastScrollMaxRef = useRef<number | null>(null);
+  const [initialScrollPositionRatio] = useState<number | null>(() => readStoredScrollRatio());
+  const scrollPositionRatioRef = useRef<number | null>(initialScrollPositionRatio);
   const [containerWidth, setContainerWidth] = useState(0);
   const [visibleHours, setVisibleHours] = useState(() => {
     try {
@@ -112,47 +134,102 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
     }
   }, [visibleHours]);
 
+  const persistKnownScrollPosition = () => {
+    const ratio = scrollPositionRatioRef.current;
+    if (ratio === null || !Number.isFinite(ratio)) {
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(SCROLL_POSITION_STORAGE_KEY, String(clampScrollRatio(ratio)));
+    } catch {
+      // ignore localStorage errors
+    }
+  };
+
+  const persistCurrentScrollPosition = () => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer || isPageHidingRef.current || isRestoringScrollPositionRef.current) {
+      return;
+    }
+
+    const maxScrollLeft = scrollContainer.scrollWidth - scrollContainer.clientWidth;
+    if (maxScrollLeft <= 0) {
+      // Do not overwrite a valid saved position while the layout is temporarily not scrollable.
+      return;
+    }
+
+    const ratio = scrollContainer.scrollLeft / maxScrollLeft;
+    if (!Number.isFinite(ratio)) {
+      return;
+    }
+
+    scrollPositionRatioRef.current = clampScrollRatio(ratio);
+    persistKnownScrollPosition();
+  };
+
+  useEffect(() => {
+    const persistBeforePageHide = () => {
+      isPageHidingRef.current = true;
+      persistKnownScrollPosition();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        persistBeforePageHide();
+      } else {
+        isPageHidingRef.current = false;
+      }
+    };
+
+    window.addEventListener('pagehide', persistBeforePageHide);
+    window.addEventListener('beforeunload', persistBeforePageHide);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('pagehide', persistBeforePageHide);
+      window.removeEventListener('beforeunload', persistBeforePageHide);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
   useEffect(() => {
     const scrollContainer = scrollContainerRef.current;
-    if (!scrollContainer || restoredScrollPositionRef.current) {
+    if (!scrollContainer || containerWidth <= 0) {
       return;
     }
 
     const maxScrollLeft = scrollContainer.scrollWidth - scrollContainer.clientWidth;
     if (maxScrollLeft <= 0) {
+      lastScrollMaxRef.current = 0;
       return;
     }
 
-    try {
-      const stored = Number(window.localStorage.getItem(SCROLL_POSITION_STORAGE_KEY));
-      if (Number.isFinite(stored)) {
-        scrollContainer.scrollLeft = Math.max(0, Math.min(1, stored)) * maxScrollLeft;
+    const previousMaxScrollLeft = lastScrollMaxRef.current;
+    const isInitialRestore = !restoredScrollPositionRef.current;
+    const shouldPreserveRatio = !isInitialRestore
+      && !pendingZoomAnchorRef.current
+      && previousMaxScrollLeft !== null
+      && previousMaxScrollLeft !== maxScrollLeft;
+
+    if (isInitialRestore || shouldPreserveRatio) {
+      const stored = scrollPositionRatioRef.current;
+      if (stored !== null) {
+        isRestoringScrollPositionRef.current = true;
+        scrollContainer.scrollLeft = stored * maxScrollLeft;
+        isRestoringScrollPositionRef.current = false;
       }
-    } catch {
-      // ignore localStorage errors
+
+      if (isInitialRestore) {
+        restoredScrollPositionRef.current = true;
+      }
     }
-    restoredScrollPositionRef.current = true;
-  }, [timelineWidth]);
+
+    lastScrollMaxRef.current = maxScrollLeft;
+  }, [containerWidth, timelineWidth]);
 
   const handleScroll = () => {
-    const scrollContainer = scrollContainerRef.current;
-    if (!scrollContainer) {
-      return;
-    }
-
-    const maxScrollLeft = scrollContainer.scrollWidth - scrollContainer.clientWidth;
-    if (maxScrollLeft <= 0) {
-      return;
-    }
-
-    try {
-      window.localStorage.setItem(
-        SCROLL_POSITION_STORAGE_KEY,
-        String(scrollContainer.scrollLeft / maxScrollLeft),
-      );
-    } catch {
-      // ignore localStorage errors
-    }
+    persistCurrentScrollPosition();
   };
 
   const wrapLabelLines = React.useCallback((label: string, maxWidth: number, maxLines: number) => {
@@ -440,6 +517,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
     if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
       e.preventDefault();
       scrollContainer.scrollLeft += e.deltaY;
+      persistCurrentScrollPosition();
     }
   };
 
@@ -459,6 +537,7 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({
       )
     );
     scrollContainer.scrollLeft = targetScrollLeft;
+    persistCurrentScrollPosition();
     pendingZoomAnchorRef.current = null;
   }, [timelineWidth]);
 

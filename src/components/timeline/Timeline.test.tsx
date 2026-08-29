@@ -255,6 +255,68 @@ describe('Timeline', () => {
     }
   });
 
+  it('persists a programmatic horizontal wheel scroll', () => {
+    const scrollContainerPrototype = HTMLDivElement.prototype;
+    const clientWidth = Object.getOwnPropertyDescriptor(scrollContainerPrototype, 'clientWidth');
+    const scrollWidth = Object.getOwnPropertyDescriptor(scrollContainerPrototype, 'scrollWidth');
+    Object.defineProperty(scrollContainerPrototype, 'clientWidth', { configurable: true, value: 200 });
+    Object.defineProperty(scrollContainerPrototype, 'scrollWidth', { configurable: true, value: 1000 });
+
+    try {
+      renderWithQueryClient(<Timeline date={mockDate} timeEntries={mockTimeEntries} />);
+      const scrollContainer = screen.getByTestId('timeline-scroll-container');
+      scrollContainer.scrollLeft = 200;
+
+      fireEvent.wheel(scrollContainer, { deltaY: 200, clientX: 200 });
+
+      expect(window.localStorage.getItem('timeline-scroll-position')).toBe('0.5');
+    } finally {
+      if (clientWidth) {
+        Object.defineProperty(scrollContainerPrototype, 'clientWidth', clientWidth);
+      } else {
+        Reflect.deleteProperty(scrollContainerPrototype, 'clientWidth');
+      }
+      if (scrollWidth) {
+        Object.defineProperty(scrollContainerPrototype, 'scrollWidth', scrollWidth);
+      } else {
+        Reflect.deleteProperty(scrollContainerPrototype, 'scrollWidth');
+      }
+    }
+  });
+
+  it('keeps the last valid position when teardown emits a reset scroll event', () => {
+    const scrollContainerPrototype = HTMLDivElement.prototype;
+    const clientWidth = Object.getOwnPropertyDescriptor(scrollContainerPrototype, 'clientWidth');
+    const scrollWidth = Object.getOwnPropertyDescriptor(scrollContainerPrototype, 'scrollWidth');
+    Object.defineProperty(scrollContainerPrototype, 'clientWidth', { configurable: true, value: 200 });
+    Object.defineProperty(scrollContainerPrototype, 'scrollWidth', { configurable: true, value: 1000 });
+
+    try {
+      renderWithQueryClient(<Timeline date={mockDate} timeEntries={mockTimeEntries} />);
+      const scrollContainer = screen.getByTestId('timeline-scroll-container');
+      scrollContainer.scrollLeft = 400;
+      fireEvent.scroll(scrollContainer);
+      expect(window.localStorage.getItem('timeline-scroll-position')).toBe('0.5');
+
+      window.dispatchEvent(new Event('pagehide'));
+      scrollContainer.scrollLeft = 0;
+      fireEvent.scroll(scrollContainer);
+
+      expect(window.localStorage.getItem('timeline-scroll-position')).toBe('0.5');
+    } finally {
+      if (clientWidth) {
+        Object.defineProperty(scrollContainerPrototype, 'clientWidth', clientWidth);
+      } else {
+        Reflect.deleteProperty(scrollContainerPrototype, 'clientWidth');
+      }
+      if (scrollWidth) {
+        Object.defineProperty(scrollContainerPrototype, 'scrollWidth', scrollWidth);
+      } else {
+        Reflect.deleteProperty(scrollContainerPrototype, 'scrollWidth');
+      }
+    }
+  });
+
   it('keeps normal wheel as pan and not zoom', () => {
     renderWithQueryClient(<Timeline date={mockDate} timeEntries={mockTimeEntries} />);
 
