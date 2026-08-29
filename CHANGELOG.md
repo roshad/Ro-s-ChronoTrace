@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-08-29
+
+### ✨ Added
+
+- 新增行为条“再开”操作，点击已有行为条后可从当前时间创建并开始一个相同标签、分类和颜色的新行为。
+
+### 🐛 Fixed
+
+- 修复窗口或 WebView 重建后时间轴滚动位置被重置的问题。
+
 ## [1.6.0] - 2026-08-02
 
 ### ✨ Added
@@ -45,7 +55,8 @@
 - 主窗口失去焦点一分钟后会销毁闲置 WebView，从托盘打开时自动重建。
 - 关闭主窗口不再退出应用；如需完全退出，请使用系统托盘中的“退出”。
 
-[Unreleased]: https://github.com/roshad/Ro-s-ChronoTrace/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/roshad/Ro-s-ChronoTrace/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/roshad/Ro-s-ChronoTrace/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/roshad/Ro-s-ChronoTrace/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/roshad/Ro-s-ChronoTrace/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/roshad/Ro-s-ChronoTrace/compare/v1.3.0...v1.4.0
