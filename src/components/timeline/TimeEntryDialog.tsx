@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { TimeEntry, TimeEntryInput, TimeEntryUpdate } from '../../services/api';
 import { CategorySelector } from './CategorySelector';
+import { EntryContinuationMode } from './entryContinuation';
 
 type CreateDialogProps = {
   mode: 'create';
@@ -18,9 +19,8 @@ type EditDialogProps = {
   entry: TimeEntry;
   onSave: (id: number, updates: TimeEntryUpdate) => void;
   onDelete: (id: number) => void;
-  onRestart: (entry: TimeEntry) => void;
-  onReopen: (entry: TimeEntry) => void;
-  canStart?: boolean;
+  onContinue: (entry: TimeEntry) => void;
+  continueMode: EntryContinuationMode;
   onCancel: () => void;
   errorMessage?: string | null;
 };
@@ -173,7 +173,7 @@ export const TimeEntryDialog: React.FC<TimeEntryDialogProps> = (props) => {
     }
 
     if (isEdit) {
-      props.onRestart(props.entry);
+      props.onContinue(props.entry);
       return;
     }
 
@@ -202,7 +202,7 @@ export const TimeEntryDialog: React.FC<TimeEntryDialogProps> = (props) => {
     });
   };
 
-  const shouldShowStartButton = isEdit ? props.canStart !== false : Boolean(props.showStartAction && props.onStart);
+  const shouldShowStartButton = isEdit || Boolean(props.showStartAction && props.onStart);
   const actionJustify = (isEdit || shouldShowStartButton) ? 'space-between' : 'flex-end';
 
   return (
@@ -282,18 +282,19 @@ export const TimeEntryDialog: React.FC<TimeEntryDialogProps> = (props) => {
               {(isEdit || shouldShowStartButton) && (
                 <div className="toolbar-row">
                   {isEdit && (
-                    <>
-                      <button type="button" onClick={() => setShowDeleteConfirm(true)} className="btn btn-ghost">
-                        删除
-                      </button>
-                      <button type="button" onClick={() => props.onReopen(props.entry)} className="btn btn-success">
-                        再开
-                      </button>
-                    </>
+                    <button type="button" onClick={() => setShowDeleteConfirm(true)} className="btn btn-ghost">
+                      删除
+                    </button>
                   )}
                   {shouldShowStartButton && (
-                    <button type="button" onClick={handleStart} className="btn btn-secondary">
-                      开始
+                    <button
+                      type="button"
+                      onClick={handleStart}
+                      className={`btn ${isEdit ? 'btn-success' : 'btn-secondary'}`}
+                    >
+                      {isEdit
+                        ? (props.continueMode === 'extend' ? '补齐并继续' : '从现在继续')
+                        : '开始'}
                     </button>
                   )}
                 </div>

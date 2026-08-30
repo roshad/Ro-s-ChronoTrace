@@ -1,14 +1,14 @@
 import React from 'react';
 import { TimeEntry, TimeEntryUpdate } from '../../services/api';
 import { TimeEntryDialog } from './TimeEntryDialog';
+import { EntryContinuationMode } from './entryContinuation';
 
 interface EditEntryDialogProps {
   entry: TimeEntry;
   onSave: (id: number, updates: TimeEntryUpdate) => void;
   onDelete: (id: number) => void;
-  onRestart: (entry: TimeEntry) => void;
-  onReopen: (entry: TimeEntry) => void;
-  canStart?: boolean;
+  onContinue: (entry: TimeEntry) => void;
+  continueMode: EntryContinuationMode;
   onCancel: () => void;
   errorMessage?: string | null;
 }
@@ -17,9 +17,8 @@ export const EditEntryDialog: React.FC<EditEntryDialogProps> = ({
   entry,
   onSave,
   onDelete,
-  onRestart,
-  onReopen,
-  canStart,
+  onContinue,
+  continueMode,
   onCancel,
   errorMessage,
 }) => (
@@ -28,9 +27,8 @@ export const EditEntryDialog: React.FC<EditEntryDialogProps> = ({
     entry={entry}
     onSave={onSave}
     onDelete={onDelete}
-    onRestart={onRestart}
-    onReopen={onReopen}
-    canStart={canStart}
+    onContinue={onContinue}
+    continueMode={continueMode}
     onCancel={onCancel}
     errorMessage={errorMessage}
   />

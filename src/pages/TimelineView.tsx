@@ -11,6 +11,7 @@ import { ExportButton } from '../components/export/ExportButton';
 import { useTimelineStore } from '../services/store';
 import { api, ScreenshotSettings, TimeEntry, TimeEntryInput, TimeEntryUpdate } from '../services/api';
 import { TimerInput } from '../components/timeline/TimerInput';
+import { getEntryContinuationMode } from '../components/timeline/entryContinuation';
 import { checkAndInstallUpdate, relaunchApp, toUpdaterErrorMessage } from '../services/updater';
 import { CategorySettings } from '../components/settings/CategorySettings';
 
@@ -198,21 +199,6 @@ export const TimelineView: React.FC = () => {
     return runs.filter((run) => run.endTime > run.startTime);
   }, [sortedProcessSamples, dayTimestamp, isSelectedDayToday, timeEntries, aggregateProcessUsage]);
 
-  const latestStartableEntry = React.useMemo(() => {
-    if (timeEntries.length === 0) {
-      return null;
-    }
-    return [...timeEntries].sort((a, b) => {
-      if (b.end_time !== a.end_time) {
-        return b.end_time - a.end_time;
-      }
-      if (b.start_time !== a.start_time) {
-        return b.start_time - a.start_time;
-      }
-      return b.id - a.id;
-    })[0];
-  }, [timeEntries]);
-
   useEffect(() => {
     if (!screenshotSettings) {
       return;
@@ -368,65 +354,49 @@ export const TimelineView: React.FC = () => {
     deleteMutation.mutate(id);
   };
 
-  const handleRestartEntry = async (entry: TimeEntry) => {
-    if (latestStartableEntry && entry.id !== latestStartableEntry.id) {
-      alert('只有最后一个行为条目可以开始。');
-      return;
-    }
-
+  const handleContinueEntry = async (entry: TimeEntry) => {
     if (activeTimer) {
       alert('请先停止当前计时，再开始其他条目。');
       return;
     }
 
     const now = Date.now();
+    const continueMode = getEntryContinuationMode(entry, timeEntries);
     try {
-      await timerUpdateMutation.mutateAsync({
-        id: entry.id,
-        updates: { end_time: now },
-      });
+      if (continueMode === 'extend') {
+        await timerUpdateMutation.mutateAsync({
+          id: entry.id,
+          updates: { end_time: now },
+        });
 
-      startTimer({
-        entryId: entry.id,
-        startTime: entry.start_time,
-        label: entry.label,
-        categoryId: entry.category_id,
-      });
+        startTimer({
+          entryId: entry.id,
+          startTime: entry.start_time,
+          label: entry.label,
+          categoryId: entry.category_id,
+        });
+      } else {
+        const continuedEntry = await api.createTimeEntry({
+          start_time: now,
+          end_time: now + 1000,
+          label: entry.label,
+          color: entry.color,
+          category_id: entry.category_id,
+        });
+
+        invalidateEntryDerivedQueries();
+        startTimer({
+          entryId: continuedEntry.id,
+          startTime: now,
+          label: entry.label,
+          categoryId: entry.category_id,
+        });
+      }
 
       setEditingEntry(null);
     } catch (error) {
-      console.error('Failed to start entry:', error);
-      alert(`开始条目失败：${error}`);
-    }
-  };
-
-  const handleReopenEntry = async (entry: TimeEntry) => {
-    if (activeTimer) {
-      alert('请先停止当前计时，再开始新的行为。');
-      return;
-    }
-
-    const now = Date.now();
-    try {
-      const reopenedEntry = await api.createTimeEntry({
-        start_time: now,
-        end_time: now + 1000,
-        label: entry.label,
-        color: entry.color,
-        category_id: entry.category_id,
-      });
-
-      invalidateEntryDerivedQueries();
-      startTimer({
-        entryId: reopenedEntry.id,
-        startTime: now,
-        label: entry.label,
-        categoryId: entry.category_id,
-      });
-      setEditingEntry(null);
-    } catch (error) {
-      console.error('Failed to reopen time entry:', error);
-      alert(`再开行为失败：${error}`);
+      console.error('Failed to continue time entry:', error);
+      alert(`继续行为失败：${error}`);
     }
   };
 
@@ -942,9 +912,9 @@ export const TimelineView: React.FC = () => {
     });
   };
 
-  const canStartEditingEntry = Boolean(
-    editingEntry && latestStartableEntry && editingEntry.id === latestStartableEntry.id
-  );
+  const editingEntryContinueMode = editingEntry
+    ? getEntryContinuationMode(editingEntry, timeEntries)
+    : 'new-entry';
 
   return (
     <div className="app-shell">
@@ -1052,9 +1022,8 @@ export const TimelineView: React.FC = () => {
           entry={editingEntry}
           onSave={handleUpdateEntry}
           onDelete={handleDeleteEntry}
-          onRestart={handleRestartEntry}
-          onReopen={handleReopenEntry}
-          canStart={canStartEditingEntry}
+          onContinue={handleContinueEntry}
+          continueMode={editingEntryContinueMode}
           onCancel={() => {
             setEditEntryError(null);
             setEditingEntry(null);
@@ -1073,7 +1042,7 @@ export const TimelineView: React.FC = () => {
                 <ul>
                   <li>在时间轴上按住鼠标拖拽，可快速创建条目。</li>
                   <li>拖拽已有条目左右边缘，可快速调整时间范围。</li>
-                  <li>点击已有条目，可编辑、删除；“再开”可从当前时间新建并开始相同的行为。</li>
+                  <li>点击已有条目，可编辑、删除或继续该行为；没有后续行为条时补齐到现在，否则从现在继续。</li>
                   <li>鼠标悬停时间轴，可查看对应时间的截图预览。</li>
                 </ul>
               </div>
