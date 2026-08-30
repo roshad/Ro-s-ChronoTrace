@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-08-30
+
+### 🔄 Changed
+
+- 合并行为条编辑窗中的“重新开始”和“再开”操作：没有后续行为条时补齐原条目到当前时间并继续计时，已有后续行为条时从当前时间新建相同行为并继续计时。
+
 ## [1.7.0] - 2026-08-29
 
 ### ✨ Added
@@ -55,7 +61,8 @@
 - 主窗口失去焦点一分钟后会销毁闲置 WebView，从托盘打开时自动重建。
 - 关闭主窗口不再退出应用；如需完全退出，请使用系统托盘中的“退出”。
 
-[Unreleased]: https://github.com/roshad/Ro-s-ChronoTrace/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/roshad/Ro-s-ChronoTrace/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/roshad/Ro-s-ChronoTrace/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/roshad/Ro-s-ChronoTrace/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/roshad/Ro-s-ChronoTrace/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/roshad/Ro-s-ChronoTrace/compare/v1.4.0...v1.5.0
