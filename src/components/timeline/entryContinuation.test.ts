@@ -1,5 +1,5 @@
 import { TimeEntry } from '../../services/api';
-import { getEntryContinuationMode } from './entryContinuation';
+import { getEntryContinuationPlan } from './entryContinuation';
 
 const entry = (id: number, start_time: number, end_time: number): TimeEntry => ({
   id,
@@ -8,16 +8,31 @@ const entry = (id: number, start_time: number, end_time: number): TimeEntry => (
   label: `行为 ${id}`,
 });
 
-describe('getEntryContinuationMode', () => {
-  it('extends the selected entry when no later behavior exists', () => {
+describe('getEntryContinuationPlan', () => {
+  it('extends the selected entry from the beginning of the final gap', () => {
     const selected = entry(2, 2000, 3000);
 
-    expect(getEntryContinuationMode(selected, [entry(1, 1000, 2000), selected])).toBe('extend');
+    expect(getEntryContinuationPlan(selected, [entry(1, 1000, 2000), selected])).toEqual({
+      action: 'extend-selected',
+      gapStartTime: 3000,
+    });
   });
 
-  it('creates a new entry when another behavior follows the selected entry', () => {
+  it('creates the selected behavior after the latest entry when another behavior follows it', () => {
     const selected = entry(1, 1000, 2000);
 
-    expect(getEntryContinuationMode(selected, [selected, entry(2, 2500, 3000)])).toBe('new-entry');
+    expect(getEntryContinuationPlan(selected, [selected, entry(2, 2500, 4000)])).toEqual({
+      action: 'create-after-latest',
+      gapStartTime: 4000,
+    });
+  });
+
+  it('finds the latest entry regardless of input order', () => {
+    const selected = entry(1, 1000, 2000);
+
+    expect(getEntryContinuationPlan(selected, [entry(3, 4000, 5000), selected, entry(2, 2500, 3000)])).toEqual({
+      action: 'create-after-latest',
+      gapStartTime: 5000,
+    });
   });
 });

@@ -11,7 +11,7 @@ import { ExportButton } from '../components/export/ExportButton';
 import { useTimelineStore } from '../services/store';
 import { api, ScreenshotSettings, TimeEntry, TimeEntryInput, TimeEntryUpdate } from '../services/api';
 import { TimerInput } from '../components/timeline/TimerInput';
-import { getEntryContinuationMode } from '../components/timeline/entryContinuation';
+import { getEntryContinuationPlan } from '../components/timeline/entryContinuation';
 import { checkAndInstallUpdate, relaunchApp, toUpdaterErrorMessage } from '../services/updater';
 import { CategorySettings } from '../components/settings/CategorySettings';
 
@@ -361,9 +361,9 @@ export const TimelineView: React.FC = () => {
     }
 
     const now = Date.now();
-    const continueMode = getEntryContinuationMode(entry, timeEntries);
+    const continuationPlan = getEntryContinuationPlan(entry, timeEntries);
     try {
-      if (continueMode === 'extend') {
+      if (continuationPlan.action === 'extend-selected') {
         await timerUpdateMutation.mutateAsync({
           id: entry.id,
           updates: { end_time: now },
@@ -376,9 +376,10 @@ export const TimelineView: React.FC = () => {
           categoryId: entry.category_id,
         });
       } else {
+        const continuedStartTime = continuationPlan.gapStartTime;
         const continuedEntry = await api.createTimeEntry({
-          start_time: now,
-          end_time: now + 1000,
+          start_time: continuedStartTime,
+          end_time: Math.max(now, continuedStartTime + 1000),
           label: entry.label,
           color: entry.color,
           category_id: entry.category_id,
@@ -387,7 +388,7 @@ export const TimelineView: React.FC = () => {
         invalidateEntryDerivedQueries();
         startTimer({
           entryId: continuedEntry.id,
-          startTime: now,
+          startTime: continuedStartTime,
           label: entry.label,
           categoryId: entry.category_id,
         });
@@ -912,10 +913,6 @@ export const TimelineView: React.FC = () => {
     });
   };
 
-  const editingEntryContinueMode = editingEntry
-    ? getEntryContinuationMode(editingEntry, timeEntries)
-    : 'new-entry';
-
   return (
     <div className="app-shell">
       <div className="app-header">
@@ -1023,7 +1020,6 @@ export const TimelineView: React.FC = () => {
           onSave={handleUpdateEntry}
           onDelete={handleDeleteEntry}
           onContinue={handleContinueEntry}
-          continueMode={editingEntryContinueMode}
           onCancel={() => {
             setEditEntryError(null);
             setEditingEntry(null);
@@ -1042,7 +1038,7 @@ export const TimelineView: React.FC = () => {
                 <ul>
                   <li>在时间轴上按住鼠标拖拽，可快速创建条目。</li>
                   <li>拖拽已有条目左右边缘，可快速调整时间范围。</li>
-                  <li>点击已有条目，可编辑、删除或继续该行为；没有后续行为条时补齐到现在，否则从现在继续。</li>
+                  <li>点击已有条目，可编辑、删除或使用所选行为填补最后一段空白并继续计时。</li>
                   <li>鼠标悬停时间轴，可查看对应时间的截图预览。</li>
                 </ul>
               </div>

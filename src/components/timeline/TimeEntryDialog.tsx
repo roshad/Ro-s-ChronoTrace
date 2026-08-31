@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { TimeEntry, TimeEntryInput, TimeEntryUpdate } from '../../services/api';
 import { CategorySelector } from './CategorySelector';
-import { EntryContinuationMode } from './entryContinuation';
 
 type CreateDialogProps = {
   mode: 'create';
@@ -20,7 +19,6 @@ type EditDialogProps = {
   onSave: (id: number, updates: TimeEntryUpdate) => void;
   onDelete: (id: number) => void;
   onContinue: (entry: TimeEntry) => void;
-  continueMode: EntryContinuationMode;
   onCancel: () => void;
   errorMessage?: string | null;
 };
@@ -292,9 +290,7 @@ export const TimeEntryDialog: React.FC<TimeEntryDialogProps> = (props) => {
                       onClick={handleStart}
                       className={`btn ${isEdit ? 'btn-success' : 'btn-secondary'}`}
                     >
-                      {isEdit
-                        ? (props.continueMode === 'extend' ? '补齐并继续' : '从现在继续')
-                        : '开始'}
+                      {isEdit ? '填补并继续' : '开始'}
                     </button>
                   )}
                 </div>

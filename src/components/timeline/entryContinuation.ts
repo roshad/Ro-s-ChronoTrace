@@ -1,14 +1,26 @@
 import { TimeEntry } from '../../services/api';
 
-export type EntryContinuationMode = 'extend' | 'new-entry';
+export type EntryContinuationPlan = {
+  action: 'extend-selected' | 'create-after-latest';
+  gapStartTime: number;
+};
 
-export const getEntryContinuationMode = (
+export const getEntryContinuationPlan = (
   entry: TimeEntry,
   timeEntries: TimeEntry[]
-): EntryContinuationMode => (
-  timeEntries.some((candidate) => (
-    candidate.id !== entry.id && candidate.end_time > entry.end_time
-  ))
-    ? 'new-entry'
-    : 'extend'
-);
+): EntryContinuationPlan => {
+  const latestEntry = timeEntries.reduce((latest, candidate) => {
+    if (candidate.end_time !== latest.end_time) {
+      return candidate.end_time > latest.end_time ? candidate : latest;
+    }
+    if (candidate.start_time !== latest.start_time) {
+      return candidate.start_time > latest.start_time ? candidate : latest;
+    }
+    return candidate.id > latest.id ? candidate : latest;
+  }, entry);
+
+  return {
+    action: latestEntry.id === entry.id ? 'extend-selected' : 'create-after-latest',
+    gapStartTime: latestEntry.end_time,
+  };
+};

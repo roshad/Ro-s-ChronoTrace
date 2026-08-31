@@ -134,7 +134,6 @@ describe('EntryDialog', () => {
         onSave={onSave}
         onDelete={jest.fn()}
         onContinue={jest.fn()}
-        continueMode="extend"
         onCancel={mockOnCancel}
       />
     );
@@ -149,7 +148,7 @@ describe('EntryDialog', () => {
     expect(onSave).toHaveBeenCalledWith(7, { category_id: 1 });
   });
 
-  it('offers 补齐并继续 when the selected entry has no later behavior', () => {
+  it('offers a single 填补并继续 action for an existing entry', () => {
     const entry = {
       id: 8,
       start_time: mockStartTime,
@@ -165,42 +164,17 @@ describe('EntryDialog', () => {
         onSave={jest.fn()}
         onDelete={jest.fn()}
         onContinue={onContinue}
-        continueMode="extend"
         onCancel={mockOnCancel}
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '补齐并继续' }));
+    fireEvent.click(screen.getByRole('button', { name: '填补并继续' }));
 
     expect(onContinue).toHaveBeenCalledWith(entry);
     expect(screen.queryByRole('button', { name: '再开' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '开始' })).not.toBeInTheDocument();
-  });
-
-  it('offers 从现在继续 when a later behavior blocks extension', () => {
-    const entry = {
-      id: 9,
-      start_time: mockStartTime,
-      end_time: mockEndTime,
-      label: '较早行为',
-      category_id: 1,
-    };
-    const onContinue = jest.fn();
-
-    renderWithQueryClient(
-      <EditEntryDialog
-        entry={entry}
-        onSave={jest.fn()}
-        onDelete={jest.fn()}
-        onContinue={onContinue}
-        continueMode="new-entry"
-        onCancel={mockOnCancel}
-      />
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: '从现在继续' }));
-
-    expect(onContinue).toHaveBeenCalledWith(entry);
+    expect(screen.queryByRole('button', { name: '补齐并继续' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '从现在继续' })).not.toBeInTheDocument();
   });
 
   it('does not submit when label is empty', () => {
