@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-08-31
+
+### 🔄 Changed
+
+- 将行为条编辑窗中的继续操作统一为“填补并继续”，使用所选行为填补最后一个行为条结束到当前时间的空白并立即继续计时。
+- 当所选行为不是最后一个行为时，从最后一个行为条结束处开始填补，不再从当前时间直接新开行为。
+
 ## [1.8.0] - 2026-08-30
 
 ### 🔄 Changed
@@ -61,7 +68,8 @@
 - 主窗口失去焦点一分钟后会销毁闲置 WebView，从托盘打开时自动重建。
 - 关闭主窗口不再退出应用；如需完全退出，请使用系统托盘中的“退出”。
 
-[Unreleased]: https://github.com/roshad/Ro-s-ChronoTrace/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/roshad/Ro-s-ChronoTrace/compare/v1.9.0...HEAD
+[1.9.0]: https://github.com/roshad/Ro-s-ChronoTrace/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/roshad/Ro-s-ChronoTrace/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/roshad/Ro-s-ChronoTrace/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/roshad/Ro-s-ChronoTrace/compare/v1.5.0...v1.6.0
